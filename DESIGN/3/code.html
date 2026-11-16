@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-surface-variant":"#bbcabf","on-secondary-fixed-variant":"#653e00","on-primary-fixed":"#002113","error":"#ffb4ab","surface-tint":"#4edea3","primary":"#4edea3","tertiary-fixed":"#c9e6ff","surface":"#0b1326","on-error":"#690005","surface-container-high":"#222a3d","secondary-container":"#ee9800","on-background":"#dae2fd","outline":"#86948a","primary-fixed-dim":"#4edea3","tertiary-fixed-dim":"#89ceff","surface-container-low":"#131b2e","on-primary-container":"#00422b","secondary":"#ffb95f","tertiary":"#89ceff","on-tertiary-fixed":"#001e2f","outline-variant":"#3c4a42","error-container":"#93000a","secondary-fixed":"#ffddb8","surface-bright":"#31394d","surface-variant":"#2d3449","inverse-surface":"#dae2fd","tertiary-container":"#23acf1","surface-dim":"#0b1326","surface-container":"#171f33","inverse-on-surface":"#283044","on-secondary-fixed":"#2a1700","on-secondary-container":"#5b3800","inverse-primary":"#006c49","on-secondary":"#472a00","surface-container-highest":"#2d3449","on-primary-fixed-variant":"#005236","primary-fixed":"#6ffbbe","background":"#0b1326","on-tertiary-container":"#003d59","on-tertiary":"#00344d","on-error-container":"#ffdad6","surface-container-lowest":"#060e20","on-tertiary-fixed-variant":"#004c6e","secondary-fixed-dim":"#ffb95f","on-surface":"#dae2fd","primary-container":"#10b981","on-primary":"#003824"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"gutter":"1.5rem","space-md":"1rem","space-sm":"0.5rem","margin":"2rem","space-lg":"1.5rem","margin-mobile":"1rem","space-xl":"2.5rem","gutter-mobile":"1rem","space-xs":"0.25rem"},fontFamily:{"body-lg":["Inter"],"display-hero":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"label-micro":["JetBrains Mono"],"label-numeric-md":["JetBrains Mono"],"headline-lg":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"label-numeric-lg":["JetBrains Mono"],"display-hero-mobile":["Plus Jakarta Sans"],"body-md":["Inter"],"body-sm":["Inter"]},fontSize:{"body-lg":["16px",{lineHeight:"24px",fontWeight:"400"}],"display-hero":["48px",{lineHeight:"56px",letterSpacing:"-0.02em",fontWeight:"700"}],"headline-lg-mobile":["24px",{lineHeight:"32px",letterSpacing:"-0.01em",fontWeight:"600"}],"label-micro":["11px",{lineHeight:"14px",letterSpacing:"0.04em",fontWeight:"500"}],"label-numeric-md":["14px",{lineHeight:"18px",fontWeight:"500"}],"headline-lg":["32px",{lineHeight:"40px",letterSpacing:"-0.02em",fontWeight:"600"}],"headline-sm":["18px",{lineHeight:"26px",letterSpacing:"-0.005em",fontWeight:"600"}],"headline-md":["24px",{lineHeight:"32px",letterSpacing:"-0.01em",fontWeight:"600"}],"label-numeric-lg":["20px",{lineHeight:"24px",letterSpacing:"-0.02em",fontWeight:"600"}],"display-hero-mobile":["32px",{lineHeight:"40px",letterSpacing:"-0.015em",fontWeight:"700"}],"body-md":["14px",{lineHeight:"20px",fontWeight:"400"}],"body-sm":["12px",{lineHeight:"18px",fontWeight:"400"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="h-20 w-full px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-sm"><div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[22px]">solar_power</span></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">SunLease</span><span class="font-label-micro text-label-micro text-primary uppercase tracking-widest leading-none mt-space-xs">Solar Yield Platform</span></div></div><div class="hidden 2xl:flex items-center gap-space-sm pl-space-md py-space-xs"><div class="flex flex-col"><span class="font-body-sm text-body-sm text-on-surface font-medium leading-none">SunPower Tech Pvt Ltd</span><span class="font-label-micro text-label-micro text-on-surface-variant leading-none mt-space-xs">ID: EPC-DISCOM-9942-IN</span></div><div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span><span class="font-label-micro text-label-micro text-primary tracking-wider uppercase">Approved — DISCOM Empanelled</span></div></div></div><nav class="hidden xl:flex items-center gap-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded-lg"><a aria-current="page" class="px-space-md py-space-sm transition-colors bg-primary-container text-on-primary-container font-semibold rounded-lg" data-path="marketplace" href="#">Marketplace</a><a class="px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors font-body-md text-body-md" data-path="my-bids" href="#">My Bids</a><a class="px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors font-body-md text-body-md" data-path="fleet-dashboard" href="#">Fleet Dashboard</a><a class="px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors font-body-md text-body-md" data-path="tickets-and-compliance" href="#">Tickets &amp; Compliance</a></nav><div class="flex items-center gap-space-md"><div class="hidden lg:flex items-center gap-space-sm px-space-md py-space-xs rounded-lg bg-surface-container-low"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-secondary text-[16px]">lock</span><span class="font-label-micro text-label-micro text-secondary uppercase tracking-wider">256-Bit SGX</span></div><div class="w-1 h-3 bg-surface-variant"></div><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-primary animate-ping"></span><span class="font-label-micro text-label-micro text-on-surface">DISCOM Bidding Enclave Active</span></div></div><div class="relative flex items-center justify-center"><button class="w-9 h-9 rounded-lg bg-surface-container-low hover:bg-surface-container-high flex items-center justify-center transition-colors text-on-surface-variant hover:text-on-surface"><span class="material-symbols-outlined text-[20px]">notifications</span></button><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-secondary-container ring-2 ring-surface-container-lowest"></span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-20 bg-surface min-h-screen"><div class="flex flex-col w-full relative">
+<!-- Ambient Atmospheric Backdrops -->
+<div class="absolute top-12 left-1/4 w-[600px] h-[340px] bg-primary/5 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+<div class="absolute top-96 right-10 w-[480px] h-[300px] bg-secondary-container/5 rounded-full blur-[160px] pointer-events-none -z-10"></div>
+<!-- Workspace Sub-Header & Live Procurement Metrics Bar -->
+<section class="w-full px-margin py-space-lg flex flex-col gap-space-lg">
+<!-- Top Identity Band -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-xs">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm flex-wrap">
+<span class="px-space-sm py-space-xs rounded bg-surface-container-high font-label-micro text-label-micro text-primary uppercase tracking-widest">
+            EPC Terminal • V-05 / V-06 / V-07
+          </span>
+<span class="flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high text-on-surface-variant font-label-micro text-label-micro">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            Empanelled Tier-1 EPC Vendor #EPC-9942
+          </span>
+</div>
+<div class="flex items-baseline gap-space-md">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">SunPower Tech Pvt Ltd</h1>
+<span class="font-label-numeric-md text-label-numeric-md text-on-surface-variant">MMR Grid Allocation Desk</span>
+</div>
+</div>
+<!-- Quick Action Right Group -->
+<div class="flex items-center gap-space-sm self-start lg:self-center">
+<div class="px-space-md py-space-sm rounded-lg bg-surface-container-low flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[18px]">verified_user</span>
+<div class="flex flex-col">
+<span class="font-label-micro text-label-micro text-on-surface-variant leading-none">SGX Enclave</span>
+<span class="font-label-numeric-md text-label-numeric-md text-secondary leading-tight">ACTIVE • SECURED</span>
+</div>
+</div>
+<button class="px-space-md py-space-sm rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-numeric-md text-label-numeric-md flex items-center gap-space-xs transition-colors" id="quick-refresh-btn">
+<span class="material-symbols-outlined text-[18px]">sync</span>
+<span>Refresh Pool</span>
+</button>
+</div>
+</div>
+<!-- Quick Stats Ribbon (4 Financial Tiles) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Stat 1 -->
+<div class="p-space-md rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase tracking-wider">Live Verified Listings</span>
+<span class="material-symbols-outlined text-primary text-[20px]">roofing</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-lg text-headline-lg text-on-surface tracking-tight">14</span>
+<span class="font-label-micro text-label-micro text-primary uppercase">Available</span>
+</div>
+<div class="mt-space-xs flex items-center justify-between font-label-micro text-label-micro text-on-surface-variant">
+<span>MMR Region Target</span>
+<span class="text-primary font-medium">96.4% Geo-Audited</span>
+</div>
+<div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors pointer-events-none"></div>
+</div>
+<!-- Stat 2 -->
+<div class="p-space-md rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase tracking-wider">Active Blind Bids</span>
+<span class="material-symbols-outlined text-secondary text-[20px]">encrypted</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-lg text-headline-lg text-secondary tracking-tight">3</span>
+<span class="font-label-micro text-label-micro text-secondary uppercase">In Enclave</span>
+</div>
+<div class="mt-space-xs flex items-center justify-between font-label-micro text-label-micro text-on-surface-variant">
+<span>Lead Portfolio Avg</span>
+<span class="font-label-numeric-md text-label-numeric-md text-on-surface font-semibold">₹3.25/kWh</span>
+</div>
+<div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-secondary/5 group-hover:bg-secondary/10 transition-colors pointer-events-none"></div>
+</div>
+<!-- Stat 3 -->
+<div class="p-space-md rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase tracking-wider">DISCOM Sanction Time</span>
+<span class="material-symbols-outlined text-tertiary text-[20px]">bolt</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-lg text-headline-lg text-tertiary tracking-tight">8.4</span>
+<span class="font-label-micro text-label-micro text-tertiary uppercase">Days Avg</span>
+</div>
+<div class="mt-space-xs flex items-center justify-between font-label-micro text-label-micro text-on-surface-variant">
+<span>Adani / MSEDCL SLA</span>
+<span class="text-tertiary font-medium">Fast-Track PPA</span>
+</div>
+<div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-tertiary/5 group-hover:bg-tertiary/10 transition-colors pointer-events-none"></div>
+</div>
+<!-- Stat 4 -->
+<div class="p-space-md rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase tracking-wider">Enclave Security</span>
+<span class="material-symbols-outlined text-primary text-[20px]">security</span>
+</div>
+<div class="mt-space-md flex items-baseline gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-primary tracking-tight">256-Bit SGX</span>
+</div>
+<div class="mt-space-xs flex items-center justify-between font-label-micro text-label-micro text-on-surface-variant">
+<span>Cryptographic State</span>
+<span class="text-primary font-medium">Sealed &amp; Timelocked</span>
+</div>
+<div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-primary/5 group-hover:bg-primary/10 transition-colors pointer-events-none"></div>
+</div>
+</div>
+</section>
+<!-- Filter & Search Controls Bar -->
+<section class="w-full px-margin pb-space-lg">
+<div class="p-space-md rounded-xl bg-surface-container-low shadow-sm flex flex-col gap-space-md">
+<!-- Top Row: Search & Granular Dropdowns -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-center">
+<!-- Search Input -->
+<div class="lg:col-span-5 relative flex items-center">
+<span class="material-symbols-outlined absolute left-space-md text-on-surface-variant text-[20px] pointer-events-none">search</span>
+<input class="w-full pl-11 pr-space-md py-space-sm rounded-lg bg-surface-container text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-primary shadow-inner" id="marketplace-search" placeholder="Search by city, locality, or minimum area..." type="text" value="Mira Road West, Thane"/>
+</div>
+<!-- Filter Selects -->
+<div class="lg:col-span-7 flex flex-wrap items-center gap-space-sm">
+<!-- City Filter -->
+<div class="relative min-w-[170px] flex-1">
+<button class="w-full px-space-md py-space-sm rounded-lg bg-surface-container hover:bg-surface-bright flex items-center justify-between text-on-surface font-body-sm text-body-sm transition-colors">
+<span class="flex items-center gap-space-xs truncate">
+<span class="text-on-surface-variant font-label-micro text-label-micro uppercase">City:</span>
+<span class="font-medium truncate">Mumbai, Thane</span>
+</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">expand_more</span>
+</button>
+</div>
+<!-- Min Area Filter (Active Pill Style) -->
+<div class="relative min-w-[170px] flex-1">
+<button class="w-full px-space-md py-space-sm rounded-lg bg-primary/15 text-primary flex items-center justify-between font-body-sm text-body-sm transition-colors">
+<span class="flex items-center gap-space-xs truncate">
+<span class="text-primary/70 font-label-micro text-label-micro uppercase">Area:</span>
+<span class="font-medium truncate">5,000–10,000 sq.ft</span>
+</span>
+<span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+</button>
+</div>
+<!-- Irradiance Filter -->
+<div class="relative min-w-[160px] flex-1">
+<button class="w-full px-space-md py-space-sm rounded-lg bg-surface-container hover:bg-surface-bright flex items-center justify-between text-on-surface font-body-sm text-body-sm transition-colors">
+<span class="flex items-center gap-space-xs truncate">
+<span class="text-on-surface-variant font-label-micro text-label-micro uppercase">Sun:</span>
+<span class="font-medium truncate">&gt;1,700 kWh/m²</span>
+</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">expand_more</span>
+</button>
+</div>
+<!-- Commercial Model -->
+<div class="relative min-w-[130px] flex-1">
+<button class="w-full px-space-md py-space-sm rounded-lg bg-surface-container hover:bg-surface-bright flex items-center justify-between text-on-surface font-body-sm text-body-sm transition-colors">
+<span class="truncate font-medium text-on-surface-variant">All (RESCO/Capex)</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Bottom Bar: Status Counter & View Toggles -->
+<div class="pt-space-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Showing <strong class="text-on-surface font-semibold">6 High-Yield Rooftop Opportunities</strong> • MMR North &amp; West Circle
+          </p>
+</div>
+<div class="flex items-center gap-space-sm self-end sm:self-center">
+<div class="flex items-center p-0.5 rounded-lg bg-surface-container">
+<button class="px-space-md py-space-xs rounded bg-surface-bright text-primary font-label-micro text-label-micro flex items-center gap-space-xs shadow-sm">
+<span class="material-symbols-outlined text-[16px]">grid_view</span>
+<span>Grid</span>
+</button>
+<button class="px-space-md py-space-xs rounded text-on-surface-variant hover:text-on-surface font-label-micro text-label-micro flex items-center gap-space-xs transition-colors">
+<span class="material-symbols-outlined text-[16px]">view_list</span>
+<span>List</span>
+</button>
+</div>
+<span class="font-label-micro text-label-micro text-on-surface-variant/60">Updated 4m ago</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Marketplace Listing Grid (3 Cards Bento/Mosaic Layout) -->
+<section class="w-full px-margin pb-space-xl">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg items-start">
+<!-- CARD 1: Listing #RF-9042 (Open for Bidding - Target Listing) -->
+<article class="rounded-xl bg-surface-container-low shadow-xl p-space-lg flex flex-col justify-between gap-space-md relative overflow-hidden transition-all duration-300 hover:shadow-2xl">
+<!-- Top Status Bar & Identity -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-micro text-label-micro text-primary uppercase font-semibold tracking-wider">Listing #RF-9042</span>
+<div class="flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-primary/10 text-primary">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span class="font-label-micro text-label-micro uppercase font-medium">LIVE — Open for Bids</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-start justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Shree Ganesh CHS</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">location_on</span>
+                Mira Road West, Thane (MMR)
+              </p>
+</div>
+<span class="px-space-sm py-space-xs rounded bg-surface-container font-label-micro text-label-micro text-on-surface">Thane</span>
+</div>
+</div>
+<!-- Satellite Image & Solar Verification Pin -->
+<div class="w-full h-44 rounded-lg overflow-hidden relative group">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="High-resolution aerial satellite view of residential cooperative housing society flat concrete rooftop with solar panels layout blueprint in Mira Road Thane under bright sunny daylight, technical architectural overlay" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqkVV1444ugFuTkbfoj41NoEQ54q0pqRWZD_fGdxaqL5rlL3qi6KVjPiBT_G_UzRlFHII1ETXqIiloGexqoc_51cmXbLfGY-xBUl5B635GyzSi7_yhJEIZaMO7rcN0XQ4OsTZd5ukyN9eslysAf_L5H0rsls1iXEkCwuVZ7KRVrvtlGJpNpeKi8djcTAnciwdqNWwds6yCa_bAeZRDFMxY7szpooAdnZLJ3RYfwxXW"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<!-- Verification Tag Overlay -->
+<div class="absolute top-2.5 left-2.5 flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-primary text-[15px]">satellite_alt</span>
+<span class="font-label-micro text-label-micro text-primary font-medium uppercase tracking-wider">Google Maps Solar Verified</span>
+</div>
+<!-- Usable Area Visual Micro-Pin -->
+<div class="absolute bottom-2.5 right-2.5 px-space-sm py-1 rounded bg-surface-container-lowest/85 backdrop-blur-md font-label-micro text-label-micro text-on-surface flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>Shadow Assessment: 98.2%</span>
+</div>
+</div>
+<!-- 3-Box Metric Highlights Grid (Rigorous Architectural Style) -->
+<div class="grid grid-cols-3 gap-space-xs p-space-sm rounded-lg bg-surface-container text-center">
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Usable Area</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-on-surface mt-0.5">8,400</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">sq. ft.</span>
+</div>
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Sunlight</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-secondary mt-0.5">1,750</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">kWh/m²</span>
+</div>
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Est. Capacity</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-primary mt-0.5">75</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">kWp</span>
+</div>
+</div>
+<!-- Structural Shade & Engineering Summary -->
+<div class="p-space-sm rounded-lg bg-surface-container-high/60 flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0 mt-0.5">wb_sunny</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+            Flat concrete roof, zero shadow obstruction between 09:00–17:00. Dedicated cable risers to LT panel.
+          </p>
+</div>
+<!-- Benchmark Economics -->
+<div class="flex items-center justify-between text-on-surface-variant font-label-micro text-label-micro pt-space-xs">
+<span>DISCOM Grid: <strong class="text-on-surface">₹7.80/kWh</strong></span>
+<span>Target RESCO: <strong class="text-primary font-semibold">₹3.10 – ₹3.40/kWh</strong></span>
+</div>
+<!-- Privacy Shield & Trigger Section -->
+<div class="flex flex-col gap-space-sm pt-space-xs">
+<div class="px-space-sm py-1.5 rounded bg-surface-container flex items-center justify-center gap-space-xs text-on-surface-variant font-label-micro text-label-micro">
+<span class="material-symbols-outlined text-secondary text-[14px]">lock</span>
+<span>Committee contact details revealed upon bid acceptance.</span>
+</div>
+<button class="w-full py-space-md px-space-lg rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-space-sm shadow-lg hover:shadow-xl transition-all cursor-pointer" onclick="toggleProposalDrawer(true)">
+<span class="material-symbols-outlined text-[20px]">lock_clock</span>
+<span>Submit Blind Proposal</span>
+</button>
+</div>
+</article>
+<!-- CARD 2: Listing #RF-8821 (Submitted Bid View [V-09]) -->
+<article class="rounded-xl bg-surface-container-low shadow-xl p-space-lg flex flex-col justify-between gap-space-md relative overflow-hidden transition-all duration-300">
+<!-- Top Status Bar & Identity -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-micro text-label-micro text-secondary uppercase font-semibold tracking-wider">Listing #RF-8821</span>
+<div class="flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-secondary-container/20 text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-micro text-label-micro uppercase font-medium">BID SUBMITTED — IN REVIEW</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-start justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Green Meadows CHS</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">apartment</span>
+                Tower A &amp; B, Mira Road (E), Thane
+              </p>
+</div>
+<span class="px-space-sm py-space-xs rounded bg-surface-container font-label-micro text-label-micro text-on-surface">Thane</span>
+</div>
+</div>
+<!-- Satellite Image & Verification Badge -->
+<div class="w-full h-44 rounded-lg overflow-hidden relative group">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Drone panoramic photography of twin residential skyscraper terraces with dual elevator machine rooms, load bearing concrete surface in Thane MMR, high angle sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHEvtqSzoBTazBqdP4d0sYt3efgL4FIerJBmIAFXghDA-upW91WqNar8OLPXEB5aOgzzB6Bsjy9AND_5SeSbwotDl-DLyarYRvxXCgbMTy-7k82mN8EGSlht8Tifoox6h6Vag3xo_sFetocqW1je6_j8DuFkku5RlJvdXd8Y3eA9_osw2ktIgFDkrvFGp2bgNwl3dJ1XWT7kLhNL_Umfxq7zFyYFqWcC8bUpVg0rcm"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<div class="absolute top-2.5 left-2.5 flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-secondary text-[15px]">verified</span>
+<span class="font-label-micro text-label-micro text-secondary font-medium uppercase tracking-wider">RWA Self-Reported &amp; Drone Verified</span>
+</div>
+<div class="absolute bottom-2.5 right-2.5 px-space-sm py-1 rounded bg-surface-container-lowest/85 backdrop-blur-md font-label-micro text-label-micro text-secondary flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px]">history</span>
+<span>Closing in 3 days</span>
+</div>
+</div>
+<!-- 3-Box Metric Highlights Grid -->
+<div class="grid grid-cols-3 gap-space-xs p-space-sm rounded-lg bg-surface-container text-center">
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Usable Area</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-on-surface mt-0.5">12,400</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">sq. ft.</span>
+</div>
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Sunlight</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-secondary mt-0.5">1,820</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">kWh/m²</span>
+</div>
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Est. Capacity</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-primary mt-0.5">110</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">kWp</span>
+</div>
+</div>
+<!-- Structural Shade Note -->
+<div class="p-space-sm rounded-lg bg-surface-container-high/60 flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0 mt-0.5">architecture</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+            RCC parapet with dual elevator machine room clearance. Verified structural load bearing: 180 kg/m².
+          </p>
+</div>
+<!-- [V-09] Submitted Bid View Module -->
+<div class="p-space-md rounded-lg bg-surface-container flex flex-col gap-space-sm shadow-inner">
+<div class="flex items-center justify-between">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase font-medium">My Submitted Bid</span>
+<span class="px-space-sm py-0.5 rounded bg-secondary-container/20 text-secondary font-label-micro text-label-micro uppercase font-bold">
+              PENDING
+            </span>
+</div>
+<div class="flex items-baseline justify-between pt-0.5">
+<div class="flex flex-col">
+<span class="font-label-micro text-label-micro text-on-surface-variant">RESCO Revenue Share</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">₹3.25 <span class="font-label-numeric-md text-label-numeric-md text-on-surface-variant font-normal">/ kWh</span></span>
+</div>
+<div class="text-right">
+<span class="font-label-micro text-label-micro text-on-surface-variant">Time in Vault</span>
+<p class="font-label-numeric-md text-label-numeric-md text-secondary font-medium">Submitted 2 days ago</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-micro text-label-micro">
+<button class="hover:text-error transition-colors flex items-center gap-1 cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">cancel</span>
+<span>Withdraw Bid</span>
+</button>
+<button class="text-primary hover:underline flex items-center gap-1 cursor-pointer">
+<span class="material-symbols-outlined text-[14px]">receipt_long</span>
+<span>View Encrypted Receipt</span>
+</button>
+</div>
+</div>
+<!-- Status Button (Muted state) -->
+<button class="w-full py-space-md px-space-lg rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-space-sm transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[20px]">assignment_turned_in</span>
+<span>You Already Bid — View Status</span>
+</button>
+</article>
+<!-- CARD 3: Listing #RF-9104 (Open for Bidding) -->
+<article class="rounded-xl bg-surface-container-low shadow-xl p-space-lg flex flex-col justify-between gap-space-md relative overflow-hidden transition-all duration-300 hover:shadow-2xl">
+<!-- Top Status Bar & Identity -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-micro text-label-micro text-primary uppercase font-semibold tracking-wider">Listing #RF-9104</span>
+<div class="flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-primary/10 text-primary">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span class="font-label-micro text-label-micro uppercase font-medium">LIVE — Open for Bids</span>
+</div>
+</div>
+<div class="mt-space-xs flex items-start justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Sagar Deep Co-Op Society</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-space-xs mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">location_on</span>
+                Vashi Sector 17, Navi Mumbai
+              </p>
+</div>
+<span class="px-space-sm py-space-xs rounded bg-surface-container font-label-micro text-label-micro text-on-surface">Navi Mumbai</span>
+</div>
+</div>
+<!-- Satellite Image & Solar Verification Pin -->
+<div class="w-full h-44 rounded-lg overflow-hidden relative group">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Commercial and residential rooftop terrace in Navi Mumbai urban landscape, clean square concrete layout with clear line of sight, daytime satellite imagery" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuiJJ1yExQNlY8oqi4tUuWXc6xHVrlcVF1wVrcmaBKgt5NoBYMkI5Co9eK4G9EHEfxDEQcfi067HmNdP8YQIeu3XXq1M0s0sXSGEuJKEXr6FXmaTxlG_aqj7PkrsaTlALbRBw1ZYusDW4IJZFRzIVwOJHGxllFKpCjLq3RoRBNOrSJK0T4K0fL5j0LkjlMUydoPDvWqaztZied4wDpZ8HQeiQIYNBFNfsupUrDDnvs"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<div class="absolute top-2.5 left-2.5 flex items-center gap-space-xs px-space-sm py-1 rounded bg-surface-container-lowest/80 backdrop-blur-md">
+<span class="material-symbols-outlined text-primary text-[15px]">satellite_alt</span>
+<span class="font-label-micro text-label-micro text-primary font-medium uppercase tracking-wider">Google Maps Solar Verified</span>
+</div>
+<div class="absolute bottom-2.5 right-2.5 px-space-sm py-1 rounded bg-surface-container-lowest/85 backdrop-blur-md font-label-micro text-label-micro text-on-surface flex items-center gap-space-xs">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>Shadow Assessment: 97.4%</span>
+</div>
+</div>
+<!-- 3-Box Metric Highlights Grid -->
+<div class="grid grid-cols-3 gap-space-xs p-space-sm rounded-lg bg-surface-container text-center">
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Usable Area</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-on-surface mt-0.5">6,200</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">sq. ft.</span>
+</div>
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Sunlight</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-secondary mt-0.5">1,720</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">kWh/m²</span>
+</div>
+<div class="flex flex-col py-space-xs">
+<span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Est. Capacity</span>
+<span class="font-label-numeric-lg text-label-numeric-lg text-primary mt-0.5">55</span>
+<span class="font-label-micro text-label-micro text-on-surface-variant">kWp</span>
+</div>
+</div>
+<!-- Structural Shade Note -->
+<div class="p-space-sm rounded-lg bg-surface-container-high/60 flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] shrink-0 mt-0.5">solar_power</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+            Minimal east shadow till 08:30, unobstructed 09:00–17:30. Adani Net-meter feeder ready on 3rd floor shaft.
+          </p>
+</div>
+<!-- Benchmark Economics -->
+<div class="flex items-center justify-between text-on-surface-variant font-label-micro text-label-micro pt-space-xs">
+<span>DISCOM Grid: <strong class="text-on-surface">₹8.10/kWh</strong></span>
+<span>Target RESCO: <strong class="text-primary font-semibold">₹3.20 – ₹3.50/kWh</strong></span>
+</div>
+<!-- Privacy Shield & Trigger Section -->
+<div class="flex flex-col gap-space-sm pt-space-xs">
+<div class="px-space-sm py-1.5 rounded bg-surface-container flex items-center justify-center gap-space-xs text-on-surface-variant font-label-micro text-label-micro">
+<span class="material-symbols-outlined text-secondary text-[14px]">lock</span>
+<span>Committee contact details revealed upon bid acceptance.</span>
+</div>
+<button class="w-full py-space-md px-space-lg rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-space-sm shadow-lg hover:shadow-xl transition-all cursor-pointer" onclick="toggleProposalDrawer(true)">
+<span class="material-symbols-outlined text-[20px]">lock_clock</span>
+<span>Submit Blind Proposal</span>
+</button>
+</div>
+</article>
+</div>
+</section>
+<!-- Blind Proposal Modal Drawer / Panel ([V-07]) -->
+<!-- Controlled via slide & visibility toggle -->
+<aside aria-label="Submit Blind Proposal Drawer" class="fixed inset-y-0 right-0 w-full max-w-xl z-50 bg-surface-container-lowest/95 backdrop-blur-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85)] flex flex-col justify-between overflow-y-auto transform transition-transform duration-300 ease-in-out translate-x-0" id="blind-proposal-drawer">
+<!-- Drawer Header -->
+<div class="p-space-lg bg-surface-container-low flex items-start justify-between gap-space-md shadow-sm">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-micro text-label-micro text-primary uppercase font-bold tracking-widest">Enclave Encrypted Submission</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-semibold tracking-tight">Submit Blind Bid for Listing #RF-9042</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Mira Road West, Thane • 8,400 sq.ft Usable Terrace • 75 kWp Capacity
+        </p>
+</div>
+<button aria-label="Close Proposal Drawer" class="w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer shrink-0" onclick="toggleProposalDrawer(false)">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Drawer Body / Interactive Submission Form -->
+<form class="p-space-lg flex flex-col gap-space-lg flex-1" id="blind-bid-form" onsubmit="event.preventDefault(); submitConfidentialBid();">
+<!-- 1. Proposal Commercial Model Dropdown -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-micro text-label-micro text-on-surface font-semibold uppercase tracking-wider" for="proposal-type">
+          1. Proposal Commercial Structure
+        </label>
+<div class="relative">
+<select class="w-full px-space-md py-space-sm rounded-lg bg-surface-container text-on-surface font-body-md text-body-md appearance-none focus:outline-none focus:ring-1 focus:ring-primary shadow-inner cursor-pointer" id="proposal-type">
+<option selected="" value="resco">RESCO Revenue Share (Zero Capex for Society)</option>
+<option value="capex">Capex Purchase (Direct EPC Turnkey Contract)</option>
+<option value="subscription">Subscription Model (Fixed Solar Monthly Rental)</option>
+</select>
+<span class="material-symbols-outlined absolute right-space-md top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Recommended for Thane RWA societies looking for instant power bill discounts.</span>
+</div>
+<!-- 2. Commercial Term Input -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<label class="font-label-micro text-label-micro text-on-surface font-semibold uppercase tracking-wider" for="commercial-term">
+            2. Proposed Commercial Tariff Rate
+          </label>
+<span class="font-label-micro text-label-micro text-secondary">DISCOM Benchmark: ₹7.80/kWh</span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full px-space-md py-space-sm rounded-lg bg-surface-container text-on-surface font-label-numeric-lg text-label-numeric-lg focus:outline-none focus:ring-1 focus:ring-primary shadow-inner tracking-wide" id="commercial-term" type="text" value="₹3.25 / kWh"/>
+<span class="absolute right-space-md font-label-micro text-label-micro text-primary uppercase font-bold bg-primary/10 px-space-xs py-0.5 rounded">
+            Sealed Term
+          </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Proposed fixed PPA rate to society for 25-year tenure with 2% annual escalation index.
+        </p>
+</div>
+<!-- 3. Proposed System Size & Engineering Specs -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-micro text-label-micro text-on-surface font-semibold uppercase tracking-wider" for="system-size">
+            3. Proposed System Size
+          </label>
+<div class="relative flex items-center">
+<input class="w-full px-space-md py-space-sm rounded-lg bg-surface-container text-on-surface font-label-numeric-md text-label-numeric-md focus:outline-none focus:ring-1 focus:ring-primary shadow-inner" id="system-size" type="number" value="75"/>
+<span class="absolute right-space-md font-label-numeric-md text-label-numeric-md text-on-surface-variant pointer-events-none">kWp</span>
+</div>
+<span class="font-label-micro text-label-micro text-on-surface-variant">Tier-1 Mono-PERC Modules</span>
+</div>
+<!-- 4. Estimated Execution Timeline -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-micro text-label-micro text-on-surface font-semibold uppercase tracking-wider" for="timeline-select">
+            4. Execution Timeline
+          </label>
+<div class="relative">
+<select class="w-full px-space-md py-space-sm rounded-lg bg-surface-container text-on-surface font-body-md text-body-md appearance-none focus:outline-none focus:ring-1 focus:ring-primary shadow-inner cursor-pointer" id="timeline-select">
+<option value="2w">2 Weeks (Fast Track)</option>
+<option selected="" value="4w">4 Weeks (Standard DISCOM)</option>
+<option value="8w">8 Weeks (Extended Grid Work)</option>
+</select>
+<span class="material-symbols-outlined absolute right-space-md top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]">expand_more</span>
+</div>
+<span class="font-label-micro text-label-micro text-on-surface-variant">Including net-meter testing</span>
+</div>
+</div>
+<!-- 5. Technical Proposal Note -->
+<div class="flex flex-col gap-space-xs">
+<label class="font-label-micro text-label-micro text-on-surface font-semibold uppercase tracking-wider" for="proposal-notes">
+          5. Technical Architecture &amp; Hardware Note
+        </label>
+<textarea class="w-full p-space-md rounded-lg bg-surface-container text-on-surface font-body-sm text-body-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary shadow-inner resize-none" id="proposal-notes" rows="3">Tier-1 540Wp bifacial solar panels, SMA Sunny Tripower string inverter with 10-year warranty, automated robotic cleaning schedule included.</textarea>
+<span class="font-label-micro text-label-micro text-on-surface-variant">Visible in committee review dossier along with EPC ISO certs.</span>
+</div>
+<!-- Blind Bidding Assurance Note (Distinct Highlighted Card) -->
+<div class="p-space-md rounded-xl bg-surface-container-high/80 shadow-md flex items-start gap-space-md relative overflow-hidden">
+<div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary text-[20px]">lock</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-primary font-semibold leading-tight">Confidentiality Guaranteed</span>
+<p class="font-body-sm text-body-sm text-on-surface leading-snug">
+            Your commercial terms are encrypted in an SGX Hardware Enclave and are completely invisible to rival vendors. Only the verified housing committee can decrypt your bid once the tender window concludes.
+          </p>
+</div>
+</div>
+</form>
+<!-- Drawer Footer Actions -->
+<div class="p-space-lg bg-surface-container-low flex items-center justify-between gap-space-md shadow-inner">
+<button class="px-space-lg py-space-md rounded-lg bg-surface-container hover:bg-surface-bright text-on-surface-variant hover:text-on-surface font-body-md text-body-md font-semibold transition-colors cursor-pointer" onclick="toggleProposalDrawer(false)" type="button">
+        Cancel
+      </button>
+<button class="px-space-xl py-space-md rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-headline-sm font-semibold flex items-center justify-center gap-space-sm shadow-xl hover:shadow-2xl transition-all cursor-pointer" form="blind-bid-form" type="submit">
+<span class="material-symbols-outlined text-[20px]">enhanced_encryption</span>
+<span>Submit Confidential Bid</span>
+</button>
+</div>
+</aside>
+<!-- Backdrop Veil for Drawer -->
+<div aria-hidden="true" class="fixed inset-0 bg-surface-container-lowest/60 backdrop-blur-sm z-40 transition-opacity duration-300 opacity-100 pointer-events-auto" id="drawer-backdrop" onclick="toggleProposalDrawer(false)"></div>
+</div>
+<script>
+  function toggleProposalDrawer(open) {
+    const drawer = document.getElementById('blind-proposal-drawer');
+    const backdrop = document.getElementById('drawer-backdrop');
+
+    if (!drawer || !backdrop) return;
+
+    if (open) {
+      drawer.classList.remove('translate-x-full');
+      drawer.classList.add('translate-x-0');
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    } else {
+      drawer.classList.remove('translate-x-0');
+      drawer.classList.add('translate-x-full');
+      backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+    }
+  }
+
+  function submitConfidentialBid() {
+    const btn = document.querySelector('button[form="blind-bid-form"]');
+    if (!btn) return;
+    
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[20px]">sync</span><span>Encrypting Enclave Payload...</span>`;
+    btn.disabled = true;
+
+    setTimeout(() => {
+      btn.innerHTML = `<span class="material-symbols-outlined text-[20px]">done_all</span><span>Bid Sealed &amp; Anchored!</span>`;
+      setTimeout(() => {
+        toggleProposalDrawer(false);
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+      }, 1000);
+    }, 1200);
+  }
+
+  // Quick refresh click interaction
+  const refreshBtn = document.getElementById('quick-refresh-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      const icon = refreshBtn.querySelector('.material-symbols-outlined');
+      if (icon) {
+        icon.classList.add('animate-spin');
+        setTimeout(() => icon.classList.remove('animate-spin'), 750);
+      }
+    });
+  }
+</script></main><footer class="w-full bg-surface-container-lowest"><div class="w-full px-margin py-space-xl"><div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-lg pb-space-lg"><div class="flex flex-col gap-space-xs max-w-xl"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface font-semibold">SunLease Protocol</span><span class="font-label-micro text-label-micro text-primary uppercase tracking-widest px-space-xs py-space-xs bg-surface-container-high rounded">Enterprise v4.2</span></div><p class="font-body-sm text-body-sm text-on-surface-variant">Institutional blind-bidding exchange powering residential welfare society rooftops with deterministic underwriting, verifiable telemetry, and state DISCOM empanelled EPC settlement.</p></div><div class="flex flex-wrap items-center gap-space-md"><div class="px-space-md py-space-sm rounded-lg bg-surface-container-low flex flex-col"><span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Enclave Hardware</span><span class="font-label-numeric-md text-label-numeric-md text-on-surface">Intel SGX v2 / Confidential VM</span></div><div class="px-space-md py-space-sm rounded-lg bg-surface-container-low flex flex-col"><span class="font-label-micro text-label-micro text-on-surface-variant uppercase">Cryptographic Hash</span><span class="font-label-numeric-md text-label-numeric-md text-secondary">SHA-256 Timelocked</span></div><div class="px-space-md py-space-sm rounded-lg bg-surface-container-low flex flex-col"><span class="font-label-micro text-label-micro text-on-surface-variant uppercase">DISCOM Registry</span><span class="font-label-numeric-md text-label-numeric-md text-primary">Validated • 99.98% SLA</span></div></div></div><div class="pt-space-md flex flex-col sm:flex-row items-center justify-between gap-space-sm font-label-micro text-label-micro text-on-surface-variant"><span>© 2025 SunLease Energy Infrastructure Corp. All cryptographic bids are final, immutable, and regulated under state solar policies.</span><div class="flex items-center gap-space-md"><span class="hover:text-on-surface transition-colors cursor-pointer">Audited Security Architecture</span><span class="hover:text-on-surface transition-colors cursor-pointer">DISCOM Interconnect Terms</span><span class="hover:text-on-surface transition-colors cursor-pointer">Privacy Safeguards</span></div></div></div></footer></body></html>
