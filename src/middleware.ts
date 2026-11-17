@@ -11,6 +11,11 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Never intercept, block, or redirect /api/* (including /api/auth/*) to HTML login pages
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   // Redirect /vendor/marketplace to /dashboard/vendor (or /login if unauthenticated)
   if (pathname === "/vendor/marketplace") {
     const tokenFromCookie =

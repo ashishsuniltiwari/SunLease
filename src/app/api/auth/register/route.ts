@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/password";
+import bcrypt from "bcryptjs";
 import { signJWT, COOKIE_NAME, COOKIE_NAME_ALT } from "@/lib/jwt";
 import { Role } from "@prisma/client";
 
@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Hash password using Argon2id
-    const hashedPassword = await hashPassword(password);
+    // Hash password using bcryptjs (pure JavaScript for Vercel serverless compatibility)
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user in database
     const user = await prisma.user.create({
@@ -104,11 +104,8 @@ export async function POST(req: NextRequest) {
     response.cookies.set(COOKIE_NAME_ALT, token, cookieOptions);
 
     return response;
-  } catch (error: any) {
-    console.error("Registration error:", error);
-    return NextResponse.json(
-      { error: "Failed to register user. Internal server error." },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    console.error("Registration error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

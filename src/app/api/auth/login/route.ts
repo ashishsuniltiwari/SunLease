@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword } from "@/lib/password";
+import bcrypt from "bcryptjs";
 import { signJWT, COOKIE_NAME, COOKIE_NAME_ALT } from "@/lib/jwt";
 
 export async function POST(req: NextRequest) {
@@ -29,8 +29,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify password with Argon2
-    const isPasswordValid = await verifyPassword(user.password, String(password));
+    // Verify password with bcryptjs (pure JavaScript for Vercel serverless compatibility)
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(String(password), user.password);
+    } catch {
+      isPasswordValid = false;
+    }
+
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
@@ -70,11 +76,8 @@ export async function POST(req: NextRequest) {
     response.cookies.set(COOKIE_NAME_ALT, token, cookieOptions);
 
     return response;
-  } catch (error: any) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "Failed to authenticate. Internal server error." },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    console.error("Login error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
