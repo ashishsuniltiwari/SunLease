@@ -42,27 +42,77 @@ export default function RwaAssistantPage() {
     },
   ]);
   const [input, setInput] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isStreaming) return;
 
+    const userText = input.trim();
     const newMsg: Message = {
       role: "user",
-      content: input,
+      content: userText,
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((prev) => [
-      ...prev,
-      newMsg,
-      {
-        role: "assistant",
-        content: `I've analyzed your inquiry regarding "${input}". Under current MSEDCL/Adani net-metering regulations and the latest MNRE RTS Phase-II directives, your society qualifies for rooftop green energy credits with an estimated solar generation ratio of 4.2 kWh/kWp/day.`,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
+    const assistantIndex = messages.length + 1;
+    const placeholderMsg: Message = {
+      role: "assistant",
+      content: "",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setMessages((prev) => [...prev, newMsg, placeholderMsg]);
     setInput("");
+    setIsStreaming(true);
+
+    try {
+      const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            ...messages.map((m) => ({ role: m.role, content: m.content })),
+            { role: "user", content: userText },
+          ],
+        }),
+      });
+
+      if (!res.ok) throw new Error("Assistant stream failed");
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let streamText = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          streamText += chunk;
+          setMessages((prev) =>
+            prev.map((m, idx) =>
+              idx === assistantIndex ? { ...m, content: streamText } : m
+            )
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error("Assistant error:", err);
+      setMessages((prev) =>
+        prev.map((m, idx) =>
+          idx === assistantIndex
+            ? {
+                ...m,
+                content:
+                  "I am specialized strictly in advising RWAs on rooftop solar feasibility, RESCO contracts, and net-metering. Under the RESCO model, 100% of capital expenditure is absorbed by the EPC contractor.",
+              }
+            : m
+        )
+      );
+    } finally {
+      setIsStreaming(false);
+    }
   };
 
   const handleQuickPrompt = (prompt: string) => {

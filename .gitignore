@@ -4,3 +4,9 @@ node_modules/
 .env
 DESIGN/
 DOCS/
+
+/src/generated/prisma
+public/uploads/
+test-results/
+playwright-report/
+

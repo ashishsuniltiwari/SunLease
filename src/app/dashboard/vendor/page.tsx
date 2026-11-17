@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   Sun,
@@ -32,6 +32,8 @@ import {
   TrendingUp,
   Receipt,
   Trash2,
+  Upload,
+  Loader2,
 } from "lucide-react";
 
 interface Listing {
@@ -76,11 +78,23 @@ export default function VendorDashboardPage() {
   );
   const [isSubmittingBid, setIsSubmittingBid] = useState(false);
   const [bidSuccess, setBidSuccess] = useState(false);
+  const [bidError, setBidError] = useState<string | null>(null);
+
+  // Vendor Profile & Upload State (wired to /api/upload)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedCertificate, setUploadedCertificate] = useState<{
+    filename: string;
+    url: string;
+    originalName: string;
+  } | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Receipt Modal state
   const [receiptListing, setReceiptListing] = useState<Listing | null>(null);
 
-  // Listings mock data
+  // Listings state
   const [listings, setListings] = useState<Listing[]>([
     {
       id: "#RF-9042",
@@ -189,11 +203,108 @@ export default function VendorDashboardPage() {
     },
   ]);
 
-  const handleRefresh = () => {
+  // Live Data Synchronization: Load live listings from /api/listings and live bids from /api/bids
+  const loadLiveData = async () => {
+    try {
+      const [listingsRes, bidsRes] = await Promise.all([
+        fetch("/api/listings"),
+        fetch("/api/bids"),
+      ]);
+
+      const myBidsMap = new Map<string, any>();
+      if (bidsRes.ok) {
+        const bidsData = await bidsRes.json();
+        if (bidsData.bids) {
+          bidsData.bids.forEach((b: any) => {
+            myBidsMap.set(b.listingId, b);
+          });
+        }
+      }
+
+      if (listingsRes.ok) {
+        const listingsData = await listingsRes.json();
+        if (listingsData.listings && listingsData.listings.length > 0) {
+          const liveListings: Listing[] = listingsData.listings.map((l: any) => {
+            const existingBid = myBidsMap.get(l.id);
+            return {
+              id: l.id,
+              society: l.societyName || l.society,
+              locality: l.location || "Mira Road West, Thane (MMR)",
+              city: l.city || "Thane",
+              usableArea: l.area,
+              sunlight: 1750,
+              capacityKwp: Math.round(l.area * 0.008) || 75,
+              shadowAssessment: 98.2,
+              discomTariff: 7.8,
+              targetRescoMin: 3.1,
+              targetRescoMax: 3.4,
+              engineeringNote: "Terrace surveyed and structurally cleared for solar installation.",
+              verificationBadge: "RWA Verified",
+              hasBid: !!existingBid,
+              bidTariff: existingBid ? existingBid.amount : undefined,
+              bidTime: existingBid ? "Submitted" : undefined,
+              bidStatus: existingBid ? existingBid.status : undefined,
+            };
+          });
+
+          setListings((prev) => {
+            const liveIds = new Set(liveListings.map((l) => l.id));
+            const remaining = prev.filter((p) => !liveIds.has(p.id));
+            return [...liveListings, ...remaining];
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error loading live vendor listings/bids:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadLiveData();
+  }, []);
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 600);
+    await loadLiveData();
+    setIsRefreshing(false);
+  };
+
+  // Vendor Profile MNRE Certificate Upload (/api/upload)
+  const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadSuccess(null);
+    setUploadError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      setUploadedCertificate({
+        filename: data.filename,
+        url: data.url,
+        originalName: data.originalName,
+      });
+      setUploadSuccess(`Certificate "${data.originalName}" uploaded successfully!`);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || "Failed to upload certificate");
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = "";
+    }
   };
 
   const handleOpenBidDrawer = (listing: Listing) => {
@@ -201,17 +312,39 @@ export default function VendorDashboardPage() {
     setProposedKwp(listing.capacityKwp);
     setProposedTariff(((listing.targetRescoMin + listing.targetRescoMax) / 2).toFixed(2));
     setBidSuccess(false);
+    setBidError(null);
     setIsDrawerOpen(true);
   };
 
-  const handleSubmitBid = (e: React.FormEvent) => {
+  // Submit Bid: POST request to /api/bids
+  const handleSubmitBid = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedListingForBid) return;
 
     setIsSubmittingBid(true);
+    setBidError(null);
 
-    setTimeout(() => {
-      // Mark listing as having a bid
+    try {
+      const res = await fetch("/api/bids", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          listingId: selectedListingForBid.id,
+          amount: parseFloat(proposedTariff),
+          kwp: proposedKwp,
+          status: "PENDING",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to submit bid to enclave");
+      }
+
+      // Mark listing as having an active bid in state
       setListings((prev) =>
         prev.map((l) =>
           l.id === selectedListingForBid.id
@@ -226,14 +359,17 @@ export default function VendorDashboardPage() {
         )
       );
 
-      setIsSubmittingBid(false);
       setBidSuccess(true);
-
       setTimeout(() => {
         setIsDrawerOpen(false);
         setBidSuccess(false);
-      }, 1200);
-    }, 1100);
+      }, 1500);
+    } catch (err: any) {
+      console.error("Bid submission error:", err);
+      setBidError(err.message || "Failed to submit bid");
+    } finally {
+      setIsSubmittingBid(false);
+    }
   };
 
   const handleWithdrawBid = (id: string) => {
@@ -295,6 +431,17 @@ export default function VendorDashboardPage() {
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                 Empanelled Tier-1 EPC Vendor #EPC-9942
               </span>
+              {uploadedCertificate && (
+                <a
+                  href={uploadedCertificate.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-primary font-mono text-[11px] hover:underline"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  MNRE Verified ({uploadedCertificate.originalName})
+                </a>
+              )}
             </div>
             <div className="flex items-baseline gap-3 flex-wrap">
               <h1 className="font-heading text-2xl sm:text-3xl font-bold text-on-surface tracking-tight">
@@ -304,10 +451,44 @@ export default function VendorDashboardPage() {
                 MMR Grid Allocation Desk
               </span>
             </div>
+            {uploadSuccess && (
+              <div className="text-[11px] font-mono text-primary flex items-center gap-1 mt-1">
+                <Check className="w-3.5 h-3.5" /> {uploadSuccess}
+              </div>
+            )}
+            {uploadError && (
+              <div className="text-[11px] font-mono text-error flex items-center gap-1 mt-1">
+                <AlertCircle className="w-3.5 h-3.5" /> {uploadError}
+              </div>
+            )}
           </div>
 
-          {/* Quick Action Right Group */}
-          <div className="flex items-center gap-3 self-start lg:self-center">
+          {/* Quick Action Right Group & Certificate Upload */}
+          <div className="flex items-center flex-wrap gap-3 self-start lg:self-center">
+            {/* Hidden file input for MNRE certificate upload */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleCertificateUpload}
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+            />
+
+            <button
+              type="button"
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3.5 py-2 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface border border-outline-variant/40 text-xs font-mono font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 shadow-sm"
+              title="Upload MNRE Certificate to /api/upload"
+            >
+              {isUploading ? (
+                <RotateCw className="w-3.5 h-3.5 animate-spin text-primary" />
+              ) : (
+                <Upload className="w-3.5 h-3.5 text-primary" />
+              )}
+              <span>{uploadedCertificate ? "Renew Certificate" : "Upload MNRE Certificate"}</span>
+            </button>
+
             <div className="px-3.5 py-2 rounded-lg bg-surface-container-low border border-outline-variant/30 flex items-center gap-2.5 shadow-inner">
               <ShieldCheck className="w-4 h-4 text-secondary" />
               <div className="flex flex-col">
@@ -936,6 +1117,14 @@ export default function VendorDashboardPage() {
               </p>
             </div>
           </div>
+
+          {/* Bid Submission Error Feedback */}
+          {bidError && (
+            <div className="p-3 rounded-lg bg-error/15 border border-error/40 text-error text-[11px] font-mono flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-error" />
+              <span>{bidError}</span>
+            </div>
+          )}
 
           {/* Drawer Actions */}
           <div className="flex items-center justify-between gap-3 pt-4 border-t border-outline-variant/20">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
@@ -13,20 +13,111 @@ import {
   ArrowRight,
   ShieldCheck,
   FileText,
+  RotateCw,
+  Compass,
+  Sparkles,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 
 export default function ListNewRooftopPage() {
   const [societyName, setSocietyName] = useState("Emerald Heights CHS");
   const [location, setLocation] = useState("Kandivali West, Mumbai, MH");
+  const [latitude, setLatitude] = useState("19.2045");
+  const [longitude, setLongitude] = useState("72.8376");
+  const [manualFallback, setManualFallback] = useState(false);
   const [rooftopArea, setRooftopArea] = useState("14,500");
   const [sanctionedLoad, setSanctionedLoad] = useState("180");
   const [discomCircle, setDiscomCircle] = useState("Adani Electricity - Mumbai Suburban");
-  const [estimatedCapacity, setEstimatedCapacity] = useState("145");
+  const [estimatedCapacity, setEstimatedCapacity] = useState("116");
+  const [isFetchingSolar, setIsFetchingSolar] = useState(false);
+  const [solarData, setSolarData] = useState<any>(null);
+  const [solarNotice, setSolarNotice] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdListingId, setCreatedListingId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch solar insights from /api/solar
+  const handleFetchSolarData = async (forceFallback = manualFallback) => {
+    setIsFetchingSolar(true);
+    setSolarNotice(null);
+
+    try {
+      const lat = parseFloat(latitude) || 19.2045;
+      const lng = parseFloat(longitude) || 72.8376;
+
+      const res = await fetch(`/api/solar?lat=${lat}&lng=${lng}&fallback=${forceFallback}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch solar data");
+      }
+
+      setSolarData(data.solarData);
+
+      // Auto-populate form fields from Google Maps Solar API / Engine
+      if (data.solarData?.usableRoofAreaSqFt) {
+        setRooftopArea(data.solarData.usableRoofAreaSqFt.toLocaleString());
+      }
+      if (data.solarData?.solarPotentialKwp) {
+        setEstimatedCapacity(data.solarData.solarPotentialKwp.toString());
+      }
+
+      if (data.fallback) {
+        setSolarNotice(
+          `Data generated via ${data.solarData?.dataSource || "High-Precision Fallback Engine"} (${data.fallbackReason || "Fallback mode active"})`
+        );
+      } else {
+        setSolarNotice("Successfully fetched live building insights from Google Maps Solar API!");
+      }
+    } catch (err: any) {
+      console.error("Solar potential fetch error:", err);
+      setSolarNotice(`Error: ${err.message}. Using default regional baseline.`);
+    } finally {
+      setIsFetchingSolar(false);
+    }
+  };
+
+  // Initial fetch on mount
+  useEffect(() => {
+    handleFetchSolarData(false);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    const cleanArea = parseFloat(rooftopArea.replace(/,/g, "")) || 14500;
+
+    try {
+      const res = await fetch("/api/listings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          societyName,
+          area: cleanArea,
+          location,
+          city: "Mumbai",
+          status: "ACTIVE",
+          societyDetails: `Sanctioned Load: ${sanctionedLoad} kVA, DISCOM: ${discomCircle}, Solar Potential: ${estimatedCapacity} kWp`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create listing");
+      }
+
+      setCreatedListingId(data.listing?.id || "RT-4032");
+      setSubmitted(true);
+    } catch (err: any) {
+      console.error("Listing creation error:", err);
+      setSubmitError(err.message || "Failed to register rooftop listing");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,6 +150,112 @@ export default function ListNewRooftopPage() {
           </Link>
         </div>
 
+        {/* GOOGLE MAPS SOLAR API INTEGRATION CALLOUT CARD */}
+        <div className="glass-panel-l2 rounded-xl p-5 border border-primary/30 shadow-md flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center text-primary">
+                <Sun className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-sm text-on-surface flex items-center gap-2">
+                  Google Maps Solar API Feasibility Check
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                    buildingInsights:findClosest
+                  </span>
+                </h3>
+                <p className="text-xs text-on-surface-variant">
+                  Calculates rooftop boundary polygons, irradiance, and peak system capacity (kWp).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  const newFallback = !manualFallback;
+                  setManualFallback(newFallback);
+                  handleFetchSolarData(newFallback);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all ${
+                  manualFallback
+                    ? "bg-secondary/20 text-secondary border-secondary/40 font-bold"
+                    : "bg-surface-container text-on-surface-variant border-outline-variant/30 hover:text-on-surface"
+                }`}
+              >
+                {manualFallback ? "Manual Fallback: ON" : "Manual Fallback: OFF"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFetchSolarData(manualFallback)}
+                disabled={isFetchingSolar}
+                className="px-3.5 py-1.5 rounded-lg bg-primary text-primary-on text-xs font-bold flex items-center gap-1.5 hover:brightness-110 disabled:opacity-50"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${isFetchingSolar ? "animate-spin" : ""}`} />
+                <span>{isFetchingSolar ? "Querying..." : "Scan Coordinates"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Coordinates Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] text-on-surface-variant uppercase">
+                Latitude Coordinates
+              </label>
+              <input
+                type="text"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                placeholder="e.g. 19.2045"
+                className="p-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface font-mono text-xs focus:outline-none focus:border-primary"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="font-mono text-[10px] text-on-surface-variant uppercase">
+                Longitude Coordinates
+              </label>
+              <input
+                type="text"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                placeholder="e.g. 72.8376"
+                className="p-2 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface font-mono text-xs focus:outline-none focus:border-primary"
+              />
+            </div>
+          </div>
+
+          {solarNotice && (
+            <div className="text-[11px] font-mono text-primary flex items-center gap-1.5 pt-1">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>{solarNotice}</span>
+            </div>
+          )}
+
+          {/* Solar Metrics Grid from API */}
+          {solarData && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-surface-container/60 border border-outline-variant/20 font-mono text-xs">
+              <div>
+                <span className="text-[10px] text-outline uppercase block">Usable Roof Area</span>
+                <span className="font-bold text-on-surface">{solarData.usableRoofAreaSqFt?.toLocaleString()} sq.ft</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-outline uppercase block">Peak System Capacity</span>
+                <span className="font-bold text-secondary">{solarData.solarPotentialKwp} kWp</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-outline uppercase block">Annual Sunshine</span>
+                <span className="font-bold text-on-surface">{solarData.maxSunshineHoursPerYear} hrs/yr</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-outline uppercase block">Annual CO2 Offset</span>
+                <span className="font-bold text-primary">~{(solarData.carbonOffsetKgPerYear / 1000).toFixed(1)} Tons</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {submitted ? (
           <div className="glass-panel-l1 rounded-xl p-8 border border-primary/40 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-primary/20 text-primary flex items-center justify-center mx-auto">
@@ -68,14 +265,14 @@ export default function ListNewRooftopPage() {
               Rooftop Successfully Registered for Blind Auction!
             </h2>
             <p className="text-xs text-on-surface-variant max-w-md mx-auto">
-              Your rooftop listing <code className="text-primary font-mono">#RT-4032</code> has been created and broadcast to 42 empanelled EPC contractors across the MMR grid circle.
+              Your rooftop listing <code className="text-primary font-mono font-bold">#{createdListingId}</code> has been synced with PostgreSQL and broadcast to empanelled EPC contractors across the MMR grid circle.
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <Link
-                href="/rwa/listings/1/bids"
+                href="/dashboard/rwa"
                 className="px-4 py-2 rounded-lg bg-primary text-primary-on text-xs font-bold hover:bg-primary/90 flex items-center gap-1.5"
               >
-                View Sealed Bids <ArrowRight className="w-3.5 h-3.5" />
+                View RWA Dashboard <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <button
                 onClick={() => setSubmitted(false)}
@@ -87,6 +284,13 @@ export default function ListNewRooftopPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="glass-panel-l1 rounded-xl p-6 border border-outline-variant/30 space-y-6">
+            {submitError && (
+              <div className="p-3 rounded-lg bg-error/10 border border-error/30 text-error text-xs font-mono flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
@@ -106,7 +310,7 @@ export default function ListNewRooftopPage() {
 
               <div>
                 <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
-                  Location & PIN Code
+                  Location &amp; PIN Code
                 </label>
                 <div className="relative">
                   <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60" />
@@ -182,7 +386,7 @@ export default function ListNewRooftopPage() {
             <div className="border border-dashed border-outline-variant/40 rounded-xl p-5 text-center bg-surface-container-lowest/50 hover:border-primary/50 transition-colors">
               <Upload className="w-8 h-8 mx-auto text-on-surface-variant/60 mb-2" />
               <p className="text-xs text-on-surface font-medium">
-                Upload Structural Fitness Certificate & Electricity Bill (PDF/JPG)
+                Upload Structural Fitness Certificate &amp; Electricity Bill (PDF/JPG)
               </p>
               <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
                 Encrypted and securely held in SGX enclave until blind auction closes.
@@ -196,9 +400,20 @@ export default function ListNewRooftopPage() {
               </div>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-lg bg-primary text-primary-on text-xs font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-glow"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-lg bg-primary text-primary-on text-xs font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-glow disabled:opacity-50"
               >
-                Submit Rooftop to Blind Auction <ArrowRight className="w-4 h-4" />
+                {isSubmitting ? (
+                  <>
+                    <RotateCw className="w-4 h-4 animate-spin" />
+                    <span>Registering Rooftop...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Submit Rooftop to Blind Auction</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           </form>

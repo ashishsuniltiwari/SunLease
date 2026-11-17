@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
@@ -14,10 +14,59 @@ import {
   ExternalLink,
   Award,
   Zap,
+  RotateCw,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 
 export default function VendorVerificationPage() {
   const [reuploading, setReuploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<{
+    filename: string;
+    url: string;
+    originalName: string;
+  } | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      setUploadedFile({
+        filename: data.filename,
+        url: data.url,
+        originalName: data.originalName,
+      });
+      setUploadSuccess(`Certificate "${data.originalName}" uploaded and saved to enclave!`);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || "Failed to upload document");
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
 
   return (
     <DashboardLayout title="DISCOM & MNRE Empanelment Status">
@@ -34,10 +83,10 @@ export default function VendorVerificationPage() {
               </span>
             </div>
             <h1 className="text-xl font-heading font-bold text-on-surface">
-              DISCOM Empanelment & Licensing Credentials
+              DISCOM Empanelment &amp; Licensing Credentials
             </h1>
             <p className="text-xs text-on-surface-variant mt-0.5">
-              Your company credentials have been attested by Platform Admin & verified in the SGX enclave.
+              Your company credentials have been attested by Platform Admin &amp; verified in the SGX enclave.
             </p>
           </div>
 
@@ -76,7 +125,7 @@ export default function VendorVerificationPage() {
                   <CheckCircle2 className="w-3.5 h-3.5" /> Grid Interconnection Cleared
                 </span>
                 <h3 className="font-heading font-bold text-sm text-on-surface mt-1">
-                  MSEDCL & Adani Circle Clearance
+                  MSEDCL &amp; Adani Circle Clearance
                 </h3>
                 <p className="text-xs text-on-surface-variant">Circle ID: MMR-DIST-8821</p>
               </div>
@@ -109,7 +158,7 @@ export default function VendorVerificationPage() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[10px] font-mono text-primary uppercase font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> GST & State Tax Current
+                  <CheckCircle2 className="w-3.5 h-3.5" /> GST &amp; State Tax Current
                 </span>
                 <h3 className="font-heading font-bold text-sm text-on-surface mt-1">
                   GSTIN Compliance Attestation
@@ -125,28 +174,77 @@ export default function VendorVerificationPage() {
         </div>
 
         {/* Upload Updates */}
-        <div className="glass-panel-l1 rounded-xl p-5 border border-outline-variant/30 flex items-center justify-between">
+        <div className="glass-panel-l1 rounded-xl p-5 border border-outline-variant/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h4 className="font-heading font-bold text-sm text-on-surface">
               Need to submit updated solvency or MNRE renewals?
             </h4>
             <p className="text-xs text-on-surface-variant">
-              Upload fresh certificates directly to the Platform Admin Verification Enclave.
+              Upload fresh certificates directly to the Platform Admin Verification Enclave via /api/upload.
             </p>
+            {uploadedFile && (
+              <a
+                href={uploadedFile.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-mono text-primary hover:underline"
+              >
+                <Check className="w-3.5 h-3.5" /> Latest file: {uploadedFile.originalName}
+              </a>
+            )}
+            {uploadSuccess && (
+              <p className="text-xs font-mono text-primary mt-1 flex items-center gap-1">
+                <Check className="w-3.5 h-3.5" /> {uploadSuccess}
+              </p>
+            )}
+            {uploadError && (
+              <p className="text-xs font-mono text-error mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" /> {uploadError}
+              </p>
+            )}
           </div>
-          <button
-            onClick={() => setReuploading(!reuploading)}
-            className="px-4 py-2 rounded-lg bg-surface-container-high border border-outline-variant/40 text-xs font-semibold text-on-surface hover:bg-surface-container-highest flex items-center gap-1.5 shrink-0"
-          >
-            <Upload className="w-3.5 h-3.5" /> {reuploading ? "Cancel Upload" : "Upload Documents"}
-          </button>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-on text-xs font-bold hover:brightness-110 flex items-center gap-1.5 shrink-0 shadow-sm disabled:opacity-50"
+            >
+              {isUploading ? (
+                <RotateCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              <span>{isUploading ? "Uploading..." : "Upload Certificate"}</span>
+            </button>
+            <button
+              onClick={() => setReuploading(!reuploading)}
+              className="px-3.5 py-2 rounded-lg bg-surface-container-high border border-outline-variant/40 text-xs font-semibold text-on-surface hover:bg-surface-container-highest flex items-center gap-1.5 shrink-0"
+            >
+              {reuploading ? "Close Dropzone" : "Open Dropzone"}
+            </button>
+          </div>
         </div>
 
         {reuploading && (
-          <div className="border border-dashed border-primary/50 rounded-xl p-6 text-center bg-surface-container-lowest/50 space-y-2">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-primary/50 hover:border-primary rounded-xl p-8 text-center bg-surface-container-lowest/50 space-y-2 cursor-pointer transition-all"
+          >
             <Upload className="w-8 h-8 mx-auto text-primary" />
-            <p className="text-xs text-on-surface font-semibold">Drop renewed certificates or PDF documents here</p>
-            <p className="text-[11px] text-on-surface-variant">Supported: PDF, JPG, PNG up to 25MB</p>
+            <p className="text-xs text-on-surface font-semibold">
+              Click to select or drop renewed MNRE certificates or PDF documents here
+            </p>
+            <p className="text-[11px] text-on-surface-variant font-mono">
+              Supported: PDF, JPG, PNG up to 25MB • Automatically sent to /api/upload
+            </p>
           </div>
         )}
       </div>

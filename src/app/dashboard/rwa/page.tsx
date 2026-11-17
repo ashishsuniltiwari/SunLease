@@ -1,7 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import {
   Building2,
   Sun,
@@ -33,15 +42,78 @@ import {
   Activity,
   AlertTriangle,
   Flame,
+  Gavel,
+  Loader2,
+  RotateCw,
 } from "lucide-react";
+
+interface LiveListing {
+  id: string;
+  societyName: string;
+  society: string;
+  location?: string | null;
+  city?: string | null;
+  area: number;
+  status: string;
+  createdAt: string;
+  _count?: { bids: number };
+}
+
+interface LiveBid {
+  id: string;
+  amount: number;
+  kwp: number;
+  status: string;
+  createdAt: string;
+  listing?: {
+    id: string;
+    societyName: string;
+    society: string;
+    area: number;
+  };
+  vendor?: {
+    id: string;
+    name?: string | null;
+    email: string;
+  };
+}
 
 interface Ticket {
   id: string;
   title: string;
   unit: string;
+  time?: string;
+  status: string;
+  priority: string;
+  description?: string | null;
+  createdAt?: string;
+}
+
+interface TelemetryPoint {
+  id?: string;
   time: string;
-  status: "Resolved" | "In Progress" | "Scheduled";
-  priority: "Low" | "Medium" | "High";
+  kw_generation: number;
+  irradiance_potential: number;
+}
+
+interface TelemetryState {
+  current: {
+    kw: number;
+    frequency: string;
+    temperature: number;
+    status: string;
+    efficiency: string;
+    timestamp: string;
+  };
+  metrics: {
+    totalGenerationKwh: number;
+    earningsRupees: number;
+    tariffRate: number;
+    carbonOffsetKg: number;
+    treesEquivalent: number;
+    carsOffset: number;
+  };
+  readings: TelemetryPoint[];
 }
 
 interface ChatMessage {
@@ -67,38 +139,121 @@ export default function RwaDashboardPage() {
   const [isLedgerModalOpen, setIsLedgerModalOpen] = useState<boolean>(false);
   const [isPpaModalOpen, setIsPpaModalOpen] = useState<boolean>(false);
 
+  // Live Listings & Bids State (from /api/listings and /api/bids)
+  const [listings, setListings] = useState<LiveListing[]>([]);
+  const [bids, setBids] = useState<LiveBid[]>([]);
+  const [isLoadingLive, setIsLoadingLive] = useState<boolean>(true);
+  const [isCreatingListing, setIsCreatingListing] = useState<boolean>(false);
+  const [newWing, setNewWing] = useState("Tower C Terrace");
+  const [newArea, setNewArea] = useState("9500");
+  const [listingError, setListingError] = useState<string | null>(null);
+  const [isAiStreaming, setIsAiStreaming] = useState<boolean>(false);
+
+  // Telemetry state & 5s polling
+  const [telemetry, setTelemetry] = useState<TelemetryState | null>(null);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  // Tickets state
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(true);
+  const [isSubmittingTicket, setIsSubmittingTicket] = useState<boolean>(false);
+
+  // Live Fetch: load listings & bids from backend API
+  const fetchLiveRwaData = async () => {
+    try {
+      setIsLoadingLive(true);
+      const [listingsRes, bidsRes] = await Promise.all([
+        fetch("/api/listings"),
+        fetch("/api/bids"),
+      ]);
+
+      if (listingsRes.ok) {
+        const data = await listingsRes.json();
+        if (data.listings) {
+          setListings(data.listings);
+        }
+      }
+
+      if (bidsRes.ok) {
+        const data = await bidsRes.json();
+        if (data.bids) {
+          setBids(data.bids);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching live RWA listings/bids:", err);
+    } finally {
+      setIsLoadingLive(false);
+    }
+  };
+
+  // Accept Bid & Transition Listing to Contracted
+  const handleAcceptBid = async (bidId: string) => {
+    try {
+      const res = await fetch("/api/bids", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bidId, action: "ACCEPT" }),
+      });
+      if (res.ok) {
+        await fetchLiveRwaData();
+      }
+    } catch (err) {
+      console.error("Error accepting bid:", err);
+    }
+  };
+
+  // Fetch Telemetry readings
+  const fetchTelemetry = async () => {
+    try {
+      const res = await fetch("/api/telemetry?limit=25");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setTelemetry(data);
+        }
+      }
+    } catch (err) {
+      console.error("Telemetry fetch error:", err);
+    }
+  };
+
+  // Fetch Tickets
+  const fetchTickets = async () => {
+    try {
+      setIsLoadingTickets(true);
+      const res = await fetch("/api/tickets");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tickets) {
+          setTickets(data.tickets);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching tickets:", err);
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  };
+
+  useEffect(() => {
+    setIsMounted(true);
+    fetchLiveRwaData();
+    fetchTickets();
+    fetchTelemetry();
+
+    // Poll /api/telemetry every 5 seconds
+    const telemetryInterval = setInterval(() => {
+      fetchTelemetry();
+    }, 5000);
+
+    return () => clearInterval(telemetryInterval);
+  }, []);
+
   // New Ticket Form State
   const [newTicketTitle, setNewTicketTitle] = useState("");
   const [newTicketUnit, setNewTicketUnit] = useState("SMA Sunny Tripower unit #01");
   const [newTicketPriority, setNewTicketPriority] = useState<"Low" | "Medium" | "High">("Medium");
-
-  // Initial Tickets
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: "#TKT-4091",
-      title: "Quarterly Inverter Efficiency Calibration",
-      unit: "SMA Sunny Tripower unit #01",
-      time: "Yesterday, 16:40",
-      status: "Resolved",
-      priority: "Low",
-    },
-    {
-      id: "#TKT-4105",
-      title: "Shadow obstruction check on Parapet Sector-C",
-      unit: "Assigned: SolarGrid Ops",
-      time: "Priority: Medium",
-      status: "In Progress",
-      priority: "Medium",
-    },
-    {
-      id: "#TKT-4112",
-      title: "Bi-annual Dust Cleaning & Pyranometer Check",
-      unit: "Automated robotic brush check",
-      time: "28 Oct 2025",
-      status: "Scheduled",
-      priority: "Low",
-    },
-  ]);
 
   // AI Copilot Chat State
   const [chatInput, setChatInput] = useState("");
@@ -122,9 +277,10 @@ export default function RwaDashboardPage() {
     },
   ]);
 
-  const handleSendMessage = (e?: React.FormEvent) => {
+  // Streaming AI Chat integration with /api/assistant
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isAiStreaming) return;
 
     const userText = chatInput.trim();
     const userMsg: ChatMessage = {
@@ -134,28 +290,71 @@ export default function RwaDashboardPage() {
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
-    setChatInput("");
+    const assistantMsgId = (Date.now() + 1).toString();
+    const assistantMsg: ChatMessage = {
+      id: assistantMsgId,
+      sender: "copilot",
+      text: "",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
 
-    // Simulated Copilot intelligent answer
-    setTimeout(() => {
-      let reply = "Based on your 25-Year RESCO PPA with SolarGrid India, your rooftop is performing with a 96.3% Performance Ratio under Adani Electricity net-metering regulations.";
-      if (userText.toLowerCase().includes("esco") || userText.toLowerCase().includes("share") || userText.toLowerCase().includes("revenue")) {
-        reply = "Under the RESCO model, SolarGrid India bears 100% of equipment, replacement, and cleaning expenses. The society receives a guaranteed floor lease of ₹15,000/month plus surplus generation bonuses indexed annually.";
-      } else if (userText.toLowerCase().includes("audit")) {
-        reply = "The structural engineering audit certified your terrace with 180 kg/m² load-bearing capacity (Wind Zone III compliant). A re-certification is scheduled in Year 5 with zero cost to the RWA.";
-      } else if (userText.toLowerCase().includes("tariff")) {
-        reply = "Your final sealed auction tariff is ₹3.40/kWh, which provides an immediate 42% cost savings compared to the standard Adani commercial common-area grid tariff of ₹5.90/kWh.";
+    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setChatInput("");
+    setIsAiStreaming(true);
+
+    try {
+      const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            ...messages.map((m) => ({
+              role: m.sender === "user" ? "user" : "assistant",
+              content: m.text,
+            })),
+            { role: "user", content: userText },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to receive stream from /api/assistant");
       }
 
-      const botMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: "copilot",
-        text: reply,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, botMsg]);
-    }, 600);
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let streamedResponse = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          streamedResponse += chunk;
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId
+                ? { ...msg, text: streamedResponse }
+                : msg
+            )
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error("AI Assistant stream error:", err);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMsgId
+            ? {
+                ...msg,
+                text: "I am specialized strictly in advising RWAs on rooftop solar feasibility, RESCO contracts, and net-metering. Under the RESCO model, SolarGrid India covers 100% of equipment, replacement, and maintenance obligations.",
+              }
+            : msg
+        )
+      );
+    } finally {
+      setIsAiStreaming(false);
+    }
   };
 
   const handleChipClick = (prompt: string) => {
@@ -163,23 +362,52 @@ export default function RwaDashboardPage() {
     setIsCopilotOpen(true);
   };
 
-  const handleCreateTicket = (e: React.FormEvent) => {
+  const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTicketTitle.trim()) return;
+    if (!newTicketTitle.trim() || isSubmittingTicket) return;
 
-    const newTicket: Ticket = {
-      id: `#TKT-${Math.floor(1000 + Math.random() * 9000)}`,
-      title: newTicketTitle.trim(),
-      unit: newTicketUnit,
-      time: "Just now",
-      status: "In Progress",
-      priority: newTicketPriority,
-    };
+    setIsSubmittingTicket(true);
+    try {
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newTicketTitle.trim(),
+          unit: newTicketUnit,
+          priority: newTicketPriority,
+          status: "Open",
+        }),
+      });
 
-    setTickets((prev) => [newTicket, ...prev]);
-    setNewTicketTitle("");
-    setIsRaiseTicketOpen(false);
+      const data = await res.json();
+      if (res.ok && data.ticket) {
+        setTickets((prev) => [data.ticket, ...prev]);
+        setNewTicketTitle("");
+        setIsRaiseTicketOpen(false);
+      } else {
+        console.error("Failed to create ticket:", data.error);
+      }
+    } catch (err) {
+      console.error("Error creating ticket:", err);
+    } finally {
+      setIsSubmittingTicket(false);
+    }
   };
+
+  const fallbackChartData: TelemetryPoint[] = [
+    { time: "06:00", kw_generation: 0.8, irradiance_potential: 1.5 },
+    { time: "08:00", kw_generation: 5.2, irradiance_potential: 6.0 },
+    { time: "10:00", kw_generation: 13.4, irradiance_potential: 14.5 },
+    { time: "12:00", kw_generation: 18.4, irradiance_potential: 19.1 },
+    { time: "14:00", kw_generation: 21.0, irradiance_potential: 22.0 },
+    { time: "16:00", kw_generation: 12.8, irradiance_potential: 13.5 },
+    { time: "18:00", kw_generation: 2.1, irradiance_potential: 2.5 },
+  ];
+
+  const chartData =
+    telemetry?.readings && telemetry.readings.length > 0
+      ? telemetry.readings
+      : fallbackChartData;
 
   return (
     <DashboardLayout
@@ -226,15 +454,19 @@ export default function RwaDashboardPage() {
             {/* Live Telemetry Beacon Badge */}
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-surface-container-lowest font-mono text-xs text-on-surface-variant border border-outline-variant/30 shadow-inner">
               <div className="relative flex items-center justify-center">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping absolute opacity-75" />
-                <span className="w-2 h-2 rounded-full bg-primary" />
+                <span className={`w-2.5 h-2.5 rounded-full ${(telemetry?.current?.kw ?? 18.4) > 0 ? "bg-primary animate-ping" : "bg-error"} absolute opacity-75`} />
+                <span className={`w-2 h-2 rounded-full ${(telemetry?.current?.kw ?? 18.4) > 0 ? "bg-primary" : "bg-error"}`} />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-on-surface font-semibold">18.4 kW</span>
+                <span className="text-on-surface font-semibold">
+                  {telemetry?.current?.kw !== undefined ? `${telemetry.current.kw} kW` : "18.4 kW"}
+                </span>
                 <span className="text-outline/40">|</span>
-                <span>Freq: <strong className="text-on-surface">50.0 Hz</strong></span>
+                <span>Freq: <strong className="text-on-surface">{telemetry?.current?.frequency || "50.0 Hz"}</strong></span>
                 <span className="text-outline/40">|</span>
-                <span className="text-primary font-medium">Synced 2s ago</span>
+                <span className="text-primary font-medium">
+                  {telemetry ? "Live (5s)" : "Syncing..."}
+                </span>
               </div>
             </div>
 
@@ -279,7 +511,9 @@ export default function RwaDashboardPage() {
                 </span>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="font-heading text-3xl font-bold text-on-surface tracking-tight">
-                    142.8
+                    {telemetry?.metrics?.totalGenerationKwh !== undefined
+                      ? telemetry.metrics.totalGenerationKwh.toFixed(1)
+                      : "142.8"}
                   </span>
                   <span className="font-mono text-sm text-primary font-semibold">
                     kWh
@@ -330,10 +564,12 @@ export default function RwaDashboardPage() {
                 </span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="font-heading text-3xl font-bold text-on-surface tracking-tight">
-                    ₹18,450
+                    {telemetry?.metrics?.earningsRupees !== undefined
+                      ? `₹${telemetry.metrics.earningsRupees.toLocaleString()}`
+                      : "₹18,450"}
                   </span>
                   <span className="text-xs text-on-surface-variant font-medium">
-                    / month
+                    / live
                   </span>
                 </div>
               </div>
@@ -362,7 +598,9 @@ export default function RwaDashboardPage() {
                 </span>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="font-heading text-3xl font-bold text-tertiary tracking-tight">
-                    1.18
+                    {telemetry?.metrics?.carbonOffsetKg !== undefined
+                      ? (telemetry.metrics.carbonOffsetKg / 1000).toFixed(2)
+                      : "1.18"}
                   </span>
                   <span className="font-mono text-sm text-tertiary font-semibold">
                     Tons CO₂
@@ -378,12 +616,18 @@ export default function RwaDashboardPage() {
               <div className="flex-1 bg-surface-container-highest rounded-full h-2 overflow-hidden">
                 <div className="bg-tertiary h-full rounded-full transition-all" style={{ width: "78%" }} />
               </div>
-              <span className="font-mono text-[11px] text-tertiary font-medium">1,180 kg</span>
+              <span className="font-mono text-[11px] text-tertiary font-medium">
+                {telemetry?.metrics?.carbonOffsetKg !== undefined
+                  ? `${telemetry.metrics.carbonOffsetKg.toLocaleString()} kg`
+                  : "1,180 kg"}
+              </span>
             </div>
 
             <div className="flex items-center gap-2 text-xs text-on-surface-variant truncate font-sans">
               <Trees className="w-3.5 h-3.5 text-tertiary shrink-0" />
-              <span>Eq. 54 trees planted • 2.4 cars offset</span>
+              <span>
+                Eq. {telemetry?.metrics?.treesEquivalent ?? 54} trees planted • {telemetry?.metrics?.carsOffset ?? 2.4} cars offset
+              </span>
             </div>
           </div>
 
@@ -395,12 +639,12 @@ export default function RwaDashboardPage() {
                   System Health
                 </span>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-                  <span className="font-heading text-lg font-bold text-primary">
-                    ONLINE
+                  <div className={`w-2.5 h-2.5 rounded-full ${(telemetry?.current?.kw ?? 18.4) > 0 ? "bg-primary animate-pulse" : "bg-error"}`} />
+                  <span className={`font-heading text-lg font-bold ${(telemetry?.current?.kw ?? 18.4) > 0 ? "text-primary" : "text-error"}`}>
+                    {telemetry?.current?.status || "ONLINE"}
                   </span>
                   <span className="font-mono text-xs text-on-surface-variant">
-                    (100% Cap)
+                    ({telemetry?.current?.efficiency || "100% Cap"})
                   </span>
                 </div>
               </div>
@@ -440,7 +684,7 @@ export default function RwaDashboardPage() {
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   </div>
                   <p className="text-xs text-on-surface-variant mt-0.5">
-                    High-frequency DISCOM bidirectional feed &amp; pyranometer sensor sync
+                    High-frequency DISCOM bidirectional feed &amp; pyranometer sensor sync (Polled every 5s)
                   </p>
                 </div>
 
@@ -468,125 +712,117 @@ export default function RwaDashboardPage() {
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-primary shadow-glow" />
                   <span className="text-on-surface font-medium">Actual Yield (kW)</span>
-                  <span className="font-mono text-primary font-bold ml-1">18.4 kW</span>
+                  <span className="font-mono text-primary font-bold ml-1">
+                    {telemetry?.current?.kw !== undefined ? `${telemetry.current.kw} kW` : "18.4 kW"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-0.5 bg-secondary border-dashed" />
                   <span className="text-on-surface-variant">Solar Irradiance Potential (kW)</span>
-                  <span className="font-mono text-secondary ml-1">19.1 kW</span>
+                  <span className="font-mono text-secondary ml-1">
+                    {chartData[chartData.length - 1]?.irradiance_potential
+                      ? `${chartData[chartData.length - 1].irradiance_potential} kW`
+                      : "19.1 kW"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded bg-secondary/20 border border-secondary/30" />
                   <span className="text-outline text-xs">Peak Window (11:00 - 15:30)</span>
                 </div>
                 <div className="ml-auto font-mono text-[11px] text-outline-variant hidden md:block">
-                  Inverter PR: 96.3%
+                  Inverter PR: {telemetry?.current?.efficiency || "96.3%"}
                 </div>
               </div>
 
-              {/* Primary SVG Telemetry Chart Container */}
+              {/* Primary Recharts Telemetry Chart Container */}
               <div className="relative w-full h-80 rounded-lg bg-surface-container-lowest p-3 flex flex-col justify-between overflow-hidden shadow-inner border border-outline-variant/30">
-                {/* Shaded Peak Daylight Window Overlay */}
-                <div className="absolute inset-y-0 left-[41%] right-[25%] bg-secondary/5 pointer-events-none border-x border-secondary/10" />
-
-                <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 800 240">
-                  <defs>
-                    <linearGradient id="area-generation-grad" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#4edea3" stopOpacity="0.35" />
-                      <stop offset="60%" stopColor="#4edea3" stopOpacity="0.1" />
-                      <stop offset="100%" stopColor="#4edea3" stopOpacity="0.0" />
-                    </linearGradient>
-                    <pattern id="telemetry-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="1" />
-                    </pattern>
-                  </defs>
-                  <rect width="800" height="240" fill="url(#telemetry-grid)" />
-
-                  {/* Horizontal Grid Lines */}
-                  {[
-                    { y: 20, val: "25 kW" },
-                    { y: 65, val: "20 kW" },
-                    { y: 110, val: "15 kW" },
-                    { y: 155, val: "10 kW" },
-                    { y: 200, val: "5 kW" },
-                  ].map((line, idx) => (
-                    <g key={idx}>
-                      <line x1="40" y1={line.y} x2="790" y2={line.y} stroke="#2d3449" strokeDasharray="3 3" strokeWidth="0.8" />
-                      <text x="35" y={line.y + 4} fill="#86948a" fontFamily="JetBrains Mono" fontSize="10" textAnchor="end">
-                        {line.val}
-                      </text>
-                    </g>
-                  ))}
-
-                  {/* Irradiance Potential Curve (Amber Dashed) */}
-                  <path
-                    d="M 50,215 C 120,210 180,185 240,140 C 300,90 360,50 440,48 C 510,46 560,70 630,130 C 690,180 730,210 780,215"
-                    fill="none"
-                    opacity="0.85"
-                    stroke="#ffb95f"
-                    strokeDasharray="4 4"
-                    strokeWidth="1.8"
-                  />
-
-                  {/* Generation Filled Area Under Actual Curve */}
-                  <path
-                    d="M 50,215 C 120,212 180,190 240,148 C 300,100 360,58 440,54 C 510,51 560,78 630,136 C 690,184 730,212 780,215 L 780,215 L 50,215 Z"
-                    fill="url(#area-generation-grad)"
-                  />
-
-                  {/* Generation Main Solid Line Curve (Emerald) */}
-                  <path
-                    d="M 50,215 C 120,212 180,190 240,148 C 300,100 360,58 440,54 C 510,51 560,78 630,136 C 690,184 730,212 780,215"
-                    fill="none"
-                    stroke="#4edea3"
-                    strokeLinecap="round"
-                    strokeWidth="2.5"
-                  />
-
-                  {/* Crosshair Indicator at 13:30 (x=475, y=55) */}
-                  <line x1="475" y1="20" x2="475" y2="215" stroke="#4edea3" strokeDasharray="2 2" strokeWidth="1.2" opacity="0.6" />
-                  <circle cx="475" cy="50" r="3.5" fill="#ffb95f" />
-                  <circle cx="475" cy="55" r="5" fill="#4edea3" />
-                  <circle cx="475" cy="55" r="9" fill="#4edea3" opacity="0.3" />
-
-                  {/* Baseline zero axis */}
-                  <line x1="40" y1="215" x2="790" y2="215" stroke="#3c4a42" strokeWidth="1" />
-                </svg>
-
-                {/* Floating Crosshair Diagnostic Tooltip Badge */}
-                <div className="absolute top-8 left-[48%] -translate-x-1/2 bg-surface-container-high/95 backdrop-blur-xl px-3 py-2 rounded-lg shadow-xl border border-outline-variant/40 pointer-events-none">
-                  <div className="flex items-center justify-between gap-3 mb-1">
-                    <span className="font-mono text-[11px] font-bold text-on-surface">13:30 IST</span>
-                    <span className="font-mono text-[10px] text-primary font-semibold bg-primary/10 border border-primary/20 px-1.5 rounded">
-                      Optimal PR
-                    </span>
+                {isMounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={chartData}
+                      margin={{ top: 12, right: 15, left: -15, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="areaGenerationGrad" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="5%" stopColor="#4edea3" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#4edea3" stopOpacity={0.0} />
+                        </linearGradient>
+                        <linearGradient id="areaIrradianceGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ffb95f" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#ffb95f" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2d3449" vertical={false} />
+                      <XAxis
+                        dataKey="time"
+                        stroke="#86948a"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={{ stroke: "#3c4a42" }}
+                      />
+                      <YAxis
+                        stroke="#86948a"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={{ stroke: "#3c4a42" }}
+                        unit=" kW"
+                        domain={[0, "auto"]}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const actualKw = payload.find((p) => p.dataKey === "kw_generation")?.value;
+                            const potentialKw = payload.find((p) => p.dataKey === "irradiance_potential")?.value;
+                            return (
+                              <div className="bg-surface-container-high/95 backdrop-blur-xl px-3 py-2 rounded-lg shadow-xl border border-outline-variant/40 font-mono text-[11px]">
+                                <div className="text-on-surface font-bold mb-1">{label}</div>
+                                <div className="flex items-center gap-2 text-primary">
+                                  <span className="w-2 h-2 rounded-full bg-primary" />
+                                  <span>Yield: <strong>{actualKw} kW</strong></span>
+                                </div>
+                                {potentialKw !== undefined && (
+                                  <div className="flex items-center gap-2 text-secondary mt-0.5">
+                                    <span className="w-2 h-2 rounded-full bg-secondary" />
+                                    <span>Irradiance: <strong>{potentialKw} kW</strong></span>
+                                  </div>
+                                )}
+                                {Number(actualKw) > 0 && Number(potentialKw) > 0 && (
+                                  <div className="text-outline text-[10px] mt-1 pt-1 border-t border-outline-variant/20">
+                                    PR: {((Number(actualKw) / Number(potentialKw)) * 100).toFixed(1)}%
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="irradiance_potential"
+                        stroke="#ffb95f"
+                        strokeDasharray="4 4"
+                        strokeWidth={1.8}
+                        fillOpacity={1}
+                        fill="url(#areaIrradianceGrad)"
+                        name="Solar Irradiance Potential"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="kw_generation"
+                        stroke="#4edea3"
+                        strokeWidth={2.5}
+                        fillOpacity={1}
+                        fill="url(#areaGenerationGrad)"
+                        name="Actual Yield"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-on-surface-variant font-mono">
+                    Initializing Telemetry Feed...
                   </div>
-                  <div className="flex flex-col gap-0.5 font-mono text-[11px]">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-on-surface-variant">Yield:</span>
-                      <span className="text-primary font-bold">18.4 kW</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-on-surface-variant">Irradiance Ref:</span>
-                      <span className="text-secondary font-medium">19.1 kW</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-on-surface-variant">Efficiency:</span>
-                      <span className="text-on-surface font-semibold">96.3%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Time Axis Ticks Row */}
-                <div className="flex justify-between px-6 pt-1 font-mono text-[11px] text-outline">
-                  <span>06:00</span>
-                  <span>08:00</span>
-                  <span>10:00</span>
-                  <span>12:00</span>
-                  <span className="text-primary font-bold">14:00 (Peak)</span>
-                  <span>16:00</span>
-                  <span>18:00</span>
-                </div>
+                )}
               </div>
             </div>
 
@@ -723,6 +959,176 @@ export default function RwaDashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* LIVE SOCIETY ROOFTOPS & TENDERS (LIVE SYNCED FROM /api/listings) */}
+            <div className="glass-panel-l2 rounded-xl p-6 border border-outline-variant/30 shadow-md flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  <h3 className="font-heading text-base font-bold text-on-surface">
+                    Society Rooftop Listings
+                  </h3>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                    Live Feed (/api/listings)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchLiveRwaData}
+                    className="p-1.5 rounded-lg bg-surface-container hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-colors"
+                    title="Refresh Live Data"
+                  >
+                    <RotateCw className={`w-3.5 h-3.5 ${isLoadingLive ? "animate-spin text-primary" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => setIsListingModalOpen(true)}
+                    className="px-2.5 py-1 rounded bg-primary text-primary-on font-mono text-[11px] font-bold flex items-center gap-1 hover:brightness-110"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add Rooftop</span>
+                  </button>
+                </div>
+              </div>
+
+              {isLoadingLive ? (
+                <div className="py-8 flex flex-col items-center justify-center gap-2 text-on-surface-variant font-mono text-xs">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span>Syncing listings from PostgreSQL...</span>
+                </div>
+              ) : listings.length === 0 ? (
+                <div className="p-6 rounded-lg bg-surface-container/50 border border-outline-variant/20 text-center space-y-2">
+                  <p className="text-xs text-on-surface-variant">No active society rooftops created yet.</p>
+                  <button
+                    onClick={() => setIsListingModalOpen(true)}
+                    className="px-3 py-1.5 rounded-lg bg-primary/15 text-primary text-xs font-semibold hover:bg-primary/25 border border-primary/30"
+                  >
+                    List First Rooftop for Bidding
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {listings.map((l) => (
+                    <div
+                      key={l.id}
+                      className="p-4 rounded-xl bg-surface-container/70 border border-outline-variant/30 flex flex-col gap-2 hover:border-primary/40 transition-all"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-heading font-bold text-sm text-on-surface">
+                            {l.societyName || l.society}
+                          </div>
+                          <div className="text-[11px] text-on-surface-variant font-mono">
+                            {l.location || "Mira Road, Mumbai"}
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                          {l.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs font-mono pt-2 border-t border-outline-variant/20">
+                        <span className="text-outline">
+                          Usable Area: <strong className="text-on-surface">{l.area.toLocaleString()} sq.ft</strong>
+                        </span>
+                        <span className="text-secondary font-bold">
+                          {l._count?.bids ?? 0} Bids Logged
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* LIVE BLIND BIDS RECEIVED ON SOCIETY ROOFTOPS (SYNCED FROM /api/bids) */}
+            <div className="glass-panel-l2 rounded-xl p-6 border border-outline-variant/30 shadow-md flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Gavel className="w-4 h-4 text-secondary" />
+                  <h3 className="font-heading text-base font-bold text-on-surface">
+                    Blind Bids Received
+                  </h3>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-secondary/10 text-secondary border border-secondary/20">
+                    Live Feed (/api/bids)
+                  </span>
+                </div>
+                <span className="text-xs font-mono text-outline">
+                  {bids.length} Total Enclave Offers
+                </span>
+              </div>
+
+              {isLoadingLive ? (
+                <div className="py-6 flex flex-col items-center justify-center gap-2 text-on-surface-variant font-mono text-xs">
+                  <Loader2 className="w-5 h-5 animate-spin text-secondary" />
+                  <span>Unsealing blind bids...</span>
+                </div>
+              ) : bids.length === 0 ? (
+                <div className="p-6 rounded-lg bg-surface-container/50 border border-outline-variant/20 text-center space-y-1">
+                  <p className="text-xs text-on-surface">No blind bids submitted yet for your society listings.</p>
+                  <p className="text-[11px] text-on-surface-variant">
+                    Empanelled EPC vendors will submit encrypted tariff offers via SGX enclave.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto text-xs">
+                  <table className="w-full text-left font-mono">
+                    <thead className="text-[10px] text-outline uppercase bg-surface-container/80 border-b border-outline-variant/20">
+                      <tr>
+                        <th className="p-2.5">Bid ID / Target</th>
+                        <th className="p-2.5">Quoted Tariff</th>
+                        <th className="p-2.5">Capacity</th>
+                        <th className="p-2.5">Vendor</th>
+                        <th className="p-2.5">Enclave Status</th>
+                        <th className="p-2.5">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant/20 text-on-surface">
+                      {bids.map((b) => (
+                        <tr key={b.id} className="hover:bg-surface-container/40">
+                          <td className="p-2.5 font-bold">
+                            <div className="text-primary">{b.id.substring(0, 10)}...</div>
+                            <div className="text-[10px] text-outline font-normal">
+                              {b.listing?.societyName || "Society Terrace"}
+                            </div>
+                          </td>
+                          <td className="p-2.5 text-secondary font-bold text-sm">
+                            ₹{b.amount.toFixed(2)} / kWh
+                          </td>
+                          <td className="p-2.5">
+                            {b.kwp} kWp
+                          </td>
+                          <td className="p-2.5">
+                            <span className="text-on-surface">
+                              {b.vendor?.name || b.vendor?.email || "Tier-1 Vendor"}
+                            </span>
+                          </td>
+                          <td className="p-2.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] ${
+                              b.status === "ACCEPTED"
+                                ? "bg-primary/20 text-primary border border-primary/30 font-bold"
+                                : "bg-secondary/10 text-secondary border border-secondary/20"
+                            }`}>
+                              {b.status}
+                            </span>
+                          </td>
+                          <td className="p-2.5">
+                            {b.status === "ACCEPTED" ? (
+                              <span className="text-primary font-bold text-[11px]">Contracted</span>
+                            ) : (
+                              <button
+                                onClick={() => handleAcceptBid(b.id)}
+                                className="px-2.5 py-1 rounded bg-primary hover:bg-primary-fixed-dim text-primary-on text-[11px] font-bold cursor-pointer transition-all shadow-sm"
+                              >
+                                Accept Bid
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* RIGHT COLUMN: 4 of 12 columns */}
@@ -736,48 +1142,82 @@ export default function RwaDashboardPage() {
                     Tickets &amp; Maintenance
                   </h3>
                 </div>
-                <button
-                  onClick={() => setIsRaiseTicketOpen(true)}
-                  className="px-2.5 py-1 rounded bg-secondary/15 hover:bg-secondary/25 text-secondary border border-secondary/30 font-mono text-[11px] font-bold uppercase transition-colors cursor-pointer flex items-center gap-1"
-                  type="button"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>Raise Ticket</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchTickets}
+                    className="p-1 rounded bg-surface-container hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-colors"
+                    title="Refresh Tickets"
+                  >
+                    <RotateCw className={`w-3 h-3 ${isLoadingTickets ? "animate-spin text-secondary" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => setIsRaiseTicketOpen(true)}
+                    className="px-2.5 py-1 rounded bg-secondary/15 hover:bg-secondary/25 text-secondary border border-secondary/30 font-mono text-[11px] font-bold uppercase transition-colors cursor-pointer flex items-center gap-1"
+                    type="button"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Raise Ticket</span>
+                  </button>
+                </div>
               </div>
 
               {/* Ticket List */}
               <div className="flex flex-col gap-3">
-                {tickets.map((tkt) => (
-                  <div
-                    key={tkt.id}
-                    className="bg-surface-container/70 p-3 rounded-lg flex flex-col gap-1.5 hover:bg-surface-container border border-outline-variant/20 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs text-on-surface-variant font-semibold">
-                        {tkt.id}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold uppercase ${
-                          tkt.status === "Resolved"
-                            ? "bg-primary/10 text-primary border border-primary/20"
-                            : tkt.status === "In Progress"
-                            ? "bg-secondary/15 text-secondary border border-secondary/30"
-                            : "bg-tertiary/15 text-tertiary border border-tertiary/30"
-                        }`}
-                      >
-                        {tkt.status}
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-medium text-on-surface leading-snug">
-                      {tkt.title}
-                    </h4>
-                    <div className="flex items-center justify-between text-on-surface-variant text-[11px] mt-0.5">
-                      <span className="truncate max-w-[170px]">{tkt.unit}</span>
-                      <span className="font-mono text-[10px] text-outline shrink-0">{tkt.time}</span>
-                    </div>
+                {isLoadingTickets ? (
+                  <div className="py-8 flex flex-col items-center justify-center gap-2 text-on-surface-variant font-mono text-xs">
+                    <Loader2 className="w-5 h-5 animate-spin text-secondary" />
+                    <span>Loading tickets from database...</span>
                   </div>
-                ))}
+                ) : tickets.length === 0 ? (
+                  <div className="p-4 rounded-lg bg-surface-container/50 border border-outline-variant/20 text-center text-xs text-on-surface-variant">
+                    No active maintenance tickets logged.
+                  </div>
+                ) : (
+                  tickets.map((tkt) => {
+                    const displayTime = tkt.createdAt
+                      ? new Date(tkt.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : tkt.time || "Just now";
+
+                    const badgeStyle =
+                      tkt.status === "Resolved"
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : tkt.status === "In Progress"
+                        ? "bg-secondary/15 text-secondary border border-secondary/30"
+                        : tkt.status === "Open"
+                        ? "bg-error/15 text-error border border-error/30"
+                        : "bg-tertiary/15 text-tertiary border border-tertiary/30";
+
+                    return (
+                      <div
+                        key={tkt.id}
+                        className="bg-surface-container/70 p-3 rounded-lg flex flex-col gap-1.5 hover:bg-surface-container border border-outline-variant/20 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-xs text-on-surface-variant font-semibold">
+                            {tkt.id.startsWith("cm") ? `#TKT-${tkt.id.slice(-4).toUpperCase()}` : tkt.id}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {tkt.priority === "High" && (
+                              <span className="px-1.5 py-0.2 rounded font-mono text-[9px] font-bold uppercase bg-error/20 text-error border border-error/30">
+                                High
+                              </span>
+                            )}
+                            <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold uppercase ${badgeStyle}`}>
+                              {tkt.status}
+                            </span>
+                          </div>
+                        </div>
+                        <h4 className="text-xs font-medium text-on-surface leading-snug">
+                          {tkt.title}
+                        </h4>
+                        <div className="flex items-center justify-between text-on-surface-variant text-[11px] mt-0.5">
+                          <span className="truncate max-w-[170px]">{tkt.unit || "SMA Sunny Tripower unit #01"}</span>
+                          <span className="font-mono text-[10px] text-outline shrink-0">{displayTime}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -967,19 +1407,21 @@ export default function RwaDashboardPage() {
             <input
               type="text"
               value={chatInput}
+              disabled={isAiStreaming}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask about your PPA agreement, tariff, DISCOM rules..."
-              className="w-full bg-surface-container-lowest text-on-surface text-xs pl-3 pr-10 py-3 rounded-lg border border-outline-variant/40 focus:outline-none focus:border-primary shadow-inner"
+              placeholder={isAiStreaming ? "Copilot is analyzing solar policy & streaming..." : "Ask about your PPA agreement, tariff, DISCOM rules..."}
+              className="w-full bg-surface-container-lowest text-on-surface text-xs pl-3 pr-10 py-3 rounded-lg border border-outline-variant/40 focus:outline-none focus:border-primary shadow-inner disabled:opacity-60"
             />
             <button
               type="submit"
-              className="absolute right-2 p-1.5 rounded-md bg-primary hover:bg-primary-fixed-dim text-primary-on transition-colors cursor-pointer"
+              disabled={isAiStreaming || !chatInput.trim()}
+              className="absolute right-2 p-1.5 rounded-md bg-primary hover:bg-primary-fixed-dim text-primary-on transition-colors cursor-pointer disabled:opacity-40"
             >
-              <Send className="w-3.5 h-3.5" />
+              {isAiStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>
           </form>
           <span className="font-mono text-[9px] text-outline text-center">
-            SunLease Engine is certified with Maharashtra Energy Development Agency (MEDA) regulations.
+            SunLease RWA Copilot is restricted strictly to RESCO solar education &amp; DISCOM rules.
           </span>
         </div>
       </aside>
@@ -1060,9 +1502,17 @@ export default function RwaDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-secondary text-secondary-on font-semibold"
+                  disabled={isSubmittingTicket}
+                  className="px-4 py-2 rounded-lg bg-secondary text-secondary-on font-semibold flex items-center gap-1.5 hover:brightness-110 disabled:opacity-50"
                 >
-                  Submit Ticket
+                  {isSubmittingTicket ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <span>Submit Ticket</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1086,49 +1536,99 @@ export default function RwaDashboardPage() {
                 ✕
               </button>
             </div>
-            <div className="text-xs text-on-surface-variant flex flex-col gap-3">
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setIsCreatingListing(true);
+                setListingError(null);
+                try {
+                  const res = await fetch("/api/listings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      societyName: newWing,
+                      area: parseFloat(newArea),
+                      location: "Mira Road (E), Thane",
+                      status: "ACTIVE",
+                    }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    throw new Error(data.error || "Failed to create listing");
+                  }
+                  setIsListingModalOpen(false);
+                  await fetchLiveRwaData();
+                } catch (err: any) {
+                  setListingError(err.message || "Failed to create listing");
+                } finally {
+                  setIsCreatingListing(false);
+                }
+              }}
+              className="text-xs text-on-surface-variant flex flex-col gap-3"
+            >
               <p>
                 Add another terrace block or club house roof under Green Meadows RWA for blind competitive bidding.
               </p>
+
+              {listingError && (
+                <div className="p-2.5 rounded-lg bg-error/10 border border-error/30 text-error font-mono text-[11px]">
+                  {listingError}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="font-mono text-[10px] text-outline uppercase">Wing / Block</label>
+                  <label className="font-mono text-[10px] text-outline uppercase">Wing / Block Name</label>
                   <input
                     type="text"
-                    defaultValue="Tower C Terrace"
-                    className="bg-surface-container p-2.5 rounded-lg border border-outline-variant/30 text-on-surface"
+                    required
+                    value={newWing}
+                    onChange={(e) => setNewWing(e.target.value)}
+                    className="bg-surface-container p-2.5 rounded-lg border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="font-mono text-[10px] text-outline uppercase">Estimated Area (sq.ft)</label>
                   <input
                     type="number"
-                    defaultValue={9500}
-                    className="bg-surface-container p-2.5 rounded-lg border border-outline-variant/30 text-on-surface"
+                    required
+                    value={newArea}
+                    onChange={(e) => setNewArea(e.target.value)}
+                    className="bg-surface-container p-2.5 rounded-lg border border-outline-variant/30 text-on-surface focus:outline-none focus:border-primary font-mono"
                   />
                 </div>
               </div>
               <div className="p-3 bg-surface-container rounded-lg border border-outline-variant/20 flex items-center justify-between">
                 <span>Auto-Estimated Potential:</span>
-                <strong className="text-primary font-mono">~75 kWp System Capacity</strong>
+                <strong className="text-primary font-mono">
+                  ~{(parseFloat(newArea || "0") * 0.008).toFixed(1)} kWp System Capacity
+                </strong>
               </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsListingModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-surface-container text-on-surface text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsListingModalOpen(false)}
-                className="px-4 py-2 rounded-lg bg-primary text-primary-on font-semibold text-xs"
-              >
-                Initialize Tender
-              </button>
-            </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsListingModalOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-surface-container text-on-surface text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingListing}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-on font-semibold text-xs flex items-center gap-1.5 hover:brightness-110 disabled:opacity-50"
+                >
+                  {isCreatingListing ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Initialize Tender</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

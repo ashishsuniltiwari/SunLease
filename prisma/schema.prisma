@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  RWA
+  VENDOR
+  ADMIN
+}
+
+model User {
+  id         String        @id @default(cuid())
+  email      String        @unique
+  name       String?
+  password   String?
+  role       Role          @default(RWA)
+  isVerified Boolean       @default(false)
+  status     String        @default("PENDING")
+  listings   RoofListing[]
+  bids       Bid[]
+  tickets    Ticket[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model RoofListing {
+  id             String      @id @default(cuid())
+  societyName    String      @default("")
+  society        String      @default("")
+  societyDetails String?
+  location       String?
+  city           String?
+  area           Float
+  status         String      @default("OPEN")
+  userId         String?
+  user           User?       @relation(fields: [userId], references: [id])
+  bids           Bid[]
+  telemetry      Telemetry[]
+  tickets        Ticket[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model Bid {
+  id        String      @id @default(cuid())
+  amount    Float
+  kwp       Float
+  status    String?     @default("PENDING")
+  listingId String
+  listing   RoofListing @relation(fields: [listingId], references: [id])
+  vendorId  String
+  vendor    User        @relation(fields: [vendorId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Telemetry {
+  id            String       @id @default(cuid())
+  kw_generation Float
+  timestamp     DateTime     @default(now())
+  listingId     String?
+  listing       RoofListing? @relation(fields: [listingId], references: [id])
+  createdAt     DateTime     @default(now())
+}
+
+model Ticket {
+  id          String       @id @default(cuid())
+  title       String
+  unit        String?      @default("SMA Sunny Tripower unit #01")
+  status      String       @default("Open")
+  priority    String       @default("Medium")
+  description String?
+  messages    Json?        @default("[]")
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id])
+  listingId   String?
+  listing     RoofListing? @relation(fields: [listingId], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
