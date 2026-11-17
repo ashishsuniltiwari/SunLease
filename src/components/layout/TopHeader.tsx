@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Bell, ShieldCheck, Sparkles, ChevronDown } from "lucide-react";
+import { Search, Bell, ShieldCheck, Sparkles, ChevronDown, LogOut } from "lucide-react";
 import Link from "next/link";
 
 interface TopHeaderProps {
@@ -40,11 +40,21 @@ export function TopHeader({ title, subtitle }: TopHeaderProps) {
           <span className="w-2 h-2 rounded-full bg-secondary absolute top-1.5 right-1.5" />
         </button>
 
-        {/* User Badge */}
+        {/* User Badge & Logout */}
         <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/30">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary-container/30 border border-primary/40 flex items-center justify-center font-bold text-primary text-xs">
             SL
           </div>
+          <button
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              window.location.href = "/login";
+            }}
+            className="p-1.5 rounded-md hover:bg-error/10 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>

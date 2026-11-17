@@ -285,9 +285,19 @@ export default function ListNewRooftopPage() {
         ) : (
           <form onSubmit={handleSubmit} className="glass-panel-l1 rounded-xl p-6 border border-outline-variant/30 space-y-6">
             {submitError && (
-              <div className="p-3 rounded-lg bg-error/10 border border-error/30 text-error text-xs font-mono flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{submitError}</span>
+              <div className="p-3 rounded-lg bg-error/10 border border-error/30 text-error text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+                {submitError.toLowerCase().includes("authentication") && (
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center px-3 py-1 bg-primary text-primary-on rounded-md font-sans text-xs font-bold hover:brightness-110 shrink-0"
+                  >
+                    Sign In or Create Account &rarr;
+                  </Link>
+                )}
               </div>
             )}
 

@@ -1,1 +1,5 @@
-export { default } from "@/app/dashboard/vendor/page";
+import { redirect } from "next/navigation";
+
+export default function VendorMarketplacePage() {
+  redirect("/dashboard/vendor");
+}

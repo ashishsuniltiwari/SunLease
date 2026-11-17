@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Sun,
   LayoutDashboard,
   Building2,
   FileCheck2,
-  Bot,
   Store,
   Gavel,
   Activity,
@@ -15,15 +15,32 @@ import {
   ShieldAlert,
   UserCheck,
   Home,
+  LogOut,
 } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  const isAdmin = pathname.startsWith("/admin") || pathname.startsWith("/dashboard/admin");
-  const isVendor = (pathname.startsWith("/vendor") || pathname.startsWith("/dashboard/vendor")) && !isAdmin;
-  const isRwa = (pathname.startsWith("/rwa") || pathname.startsWith("/dashboard/rwa")) && !isVendor && !isAdmin;
-  const activeRole = isAdmin ? "ADMIN" : isVendor ? "VENDOR" : isRwa ? "RWA" : "ADMIN";
+  // Check authenticated role
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.authenticated && data.user?.role) {
+          setUserRole(data.user.role.toUpperCase());
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Determine active portal context based on route
+  const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/dashboard/admin");
+  const isVendorRoute = (pathname.startsWith("/vendor") || pathname.startsWith("/dashboard/vendor")) && !isAdminRoute;
+  const isRwaRoute = (pathname.startsWith("/rwa") || pathname.startsWith("/dashboard/rwa")) && !isVendorRoute && !isAdminRoute;
+
+  // Effective role priority: authenticated user role if matched, or active portal route
+  const effectiveRole = userRole || (isAdminRoute ? "ADMIN" : isVendorRoute ? "VENDOR" : "RWA");
 
   const itemClass = (path: string) => {
     const active =
@@ -40,8 +57,18 @@ export function Sidebar() {
     }`;
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "/login";
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
+
   return (
     <aside className="w-60 glass-panel-l1 border-r border-outline-variant/30 flex flex-col h-screen sticky top-0 shrink-0 z-40">
+      {/* Brand Header */}
       <div className="p-3 border-b border-outline-variant/20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-primary-on shadow-glow">
@@ -52,100 +79,91 @@ export function Sidebar() {
           </span>
         </Link>
         <span className="px-1.5 py-0.5 text-[9px] font-mono rounded font-semibold border bg-primary/10 text-primary border-primary/30">
-          {activeRole}
+          {effectiveRole}
         </span>
       </div>
 
-      <div className="p-2 border-b border-outline-variant/20 bg-surface-container-lowest/50">
-        <div className="grid grid-cols-3 gap-1 bg-surface-container-low p-1 rounded-md border border-outline-variant/30">
-          <Link
-            href="/dashboard/rwa"
-            className={`py-1 text-[10px] text-center rounded transition-colors ${
-              isRwa ? "bg-primary text-primary-on font-bold" : "text-on-surface-variant hover:text-on-surface"
-            }`}
-          >
-            RWA
-          </Link>
-          <Link
-            href="/dashboard/vendor"
-            className={`py-1 text-[10px] text-center rounded transition-colors ${
-              isVendor ? "bg-secondary text-secondary-on font-bold" : "text-on-surface-variant hover:text-on-surface"
-            }`}
-          >
-            Vendor
-          </Link>
-          <Link
-            href="/dashboard/admin/verification"
-            className={`py-1 text-[10px] text-center rounded transition-colors ${
-              isAdmin ? "bg-tertiary text-tertiary-on font-bold" : "text-on-surface-variant hover:text-on-surface"
-            }`}
-          >
-            Admin
-          </Link>
-        </div>
-      </div>
-
+      {/* Role-Restricted Navigation Items */}
       <div className="flex-1 overflow-y-auto p-2 space-y-4">
-        {/* RWA Section */}
-        <div>
-          <div className="text-[10px] font-mono text-on-surface-variant/70 uppercase mb-1.5 px-2">RWA Society</div>
-          <div className="space-y-0.5">
-            <Link href="/dashboard/rwa" className={itemClass("/dashboard/rwa")}>
-              <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard & Telemetry
-            </Link>
-            <Link href="/rwa/listings/new" className={itemClass("/rwa/listings/new")}>
-              <Building2 className="w-3.5 h-3.5" /> List New Rooftop
-            </Link>
-            <Link href="/rwa/listings/1/bids" className={itemClass("/rwa/listings/1/bids")}>
-              <FileCheck2 className="w-3.5 h-3.5" /> Blind Bids
-            </Link>
-            <Link href="/rwa/assistant" className={itemClass("/rwa/assistant")}>
-              <Bot className="w-3.5 h-3.5 text-primary" /> AI Assistant
-            </Link>
+        {/* RWA SECTION: ONLY visible to RWA users */}
+        {effectiveRole === "RWA" && (
+          <div>
+            <div className="text-[10px] font-mono text-on-surface-variant/70 uppercase mb-1.5 px-2">
+              RWA Society Portal
+            </div>
+            <div className="space-y-0.5">
+              <Link href="/dashboard/rwa" className={itemClass("/dashboard/rwa")}>
+                <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard & Telemetry
+              </Link>
+              <Link href="/rwa/listings/new" className={itemClass("/rwa/listings/new")}>
+                <Building2 className="w-3.5 h-3.5" /> List New Rooftop
+              </Link>
+              <Link href="/rwa/listings/1/bids" className={itemClass("/rwa/listings/1/bids")}>
+                <FileCheck2 className="w-3.5 h-3.5" /> Blind Bids
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Solar Vendor Section */}
-        <div>
-          <div className="text-[10px] font-mono text-on-surface-variant/70 uppercase mb-1.5 px-2">Solar Vendor</div>
-          <div className="space-y-0.5">
-            <Link href="/dashboard/vendor" className={itemClass("/dashboard/vendor")}>
-              <Store className="w-3.5 h-3.5" /> Live Marketplace
-            </Link>
-            <Link href="/vendor/bids" className={itemClass("/vendor/bids")}>
-              <Gavel className="w-3.5 h-3.5" /> My Submitted Bids
-            </Link>
-            <Link href="/vendor/fleet" className={itemClass("/vendor/fleet")}>
-              <Activity className="w-3.5 h-3.5" /> Contracted Fleet
-            </Link>
-            <Link href="/vendor/maintenance" className={itemClass("/vendor/maintenance")}>
-              <Wrench className="w-3.5 h-3.5 text-secondary" /> Maintenance Desk
-            </Link>
-            <Link href="/vendor/verification" className={itemClass("/vendor/verification")}>
-              <UserCheck className="w-3.5 h-3.5" /> DISCOM Verification
-            </Link>
+        {/* SOLAR VENDOR SECTION: ONLY visible to Vendor users */}
+        {effectiveRole === "VENDOR" && (
+          <div>
+            <div className="text-[10px] font-mono text-on-surface-variant/70 uppercase mb-1.5 px-2">
+              Solar EPC Vendor Desk
+            </div>
+            <div className="space-y-0.5">
+              <Link href="/dashboard/vendor" className={itemClass("/dashboard/vendor")}>
+                <Store className="w-3.5 h-3.5" /> Live Marketplace
+              </Link>
+              <Link href="/vendor/bids" className={itemClass("/vendor/bids")}>
+                <Gavel className="w-3.5 h-3.5" /> My Submitted Bids
+              </Link>
+              <Link href="/vendor/fleet" className={itemClass("/vendor/fleet")}>
+                <Activity className="w-3.5 h-3.5" /> Contracted Fleet
+              </Link>
+              <Link href="/vendor/maintenance" className={itemClass("/vendor/maintenance")}>
+                <Wrench className="w-3.5 h-3.5 text-secondary" /> Maintenance Desk
+              </Link>
+              <Link href="/vendor/verification" className={itemClass("/vendor/verification")}>
+                <UserCheck className="w-3.5 h-3.5" /> DISCOM Verification
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Platform Admin Section */}
-        <div>
-          <div className="text-[10px] font-mono text-on-surface-variant/70 uppercase mb-1.5 px-2">Platform Admin</div>
-          <div className="space-y-0.5">
-            <Link href="/dashboard/admin/verification" className={itemClass("/dashboard/admin/verification")}>
-              <ShieldAlert className="w-3.5 h-3.5" /> Verification Queue
-            </Link>
-            <Link href="/dashboard/admin/directory" className={itemClass("/dashboard/admin/directory")}>
-              <UserCheck className="w-3.5 h-3.5" /> Vendor Directory
-            </Link>
+        {/* PLATFORM ADMIN SECTION: ONLY visible to Admin users */}
+        {effectiveRole === "ADMIN" && (
+          <div>
+            <div className="text-[10px] font-mono text-on-surface-variant/70 uppercase mb-1.5 px-2">
+              Platform Admin
+            </div>
+            <div className="space-y-0.5">
+              <Link href="/dashboard/admin/verification" className={itemClass("/dashboard/admin/verification")}>
+                <ShieldAlert className="w-3.5 h-3.5" /> Verification Queue
+              </Link>
+              <Link href="/dashboard/admin/directory" className={itemClass("/dashboard/admin/directory")}>
+                <UserCheck className="w-3.5 h-3.5" /> Vendor Directory
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* Footer Info & Sign Out */}
       <div className="p-2 border-t border-outline-variant/20 bg-surface-container-lowest/40 flex items-center justify-between text-xs">
-        <span className="text-[11px] font-medium text-on-surface px-1">{activeRole} Mode</span>
-        <Link href="/" className="p-1 hover:text-primary text-on-surface-variant" title="Public Home">
-          <Home className="w-3.5 h-3.5" />
-        </Link>
+        <span className="text-[11px] font-medium text-on-surface px-1">{effectiveRole} Portal</span>
+        <div className="flex items-center gap-1.5">
+          <Link href="/" className="p-1 hover:text-primary text-on-surface-variant" title="Return to Website">
+            <Home className="w-3.5 h-3.5" />
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="p-1 hover:text-error text-on-surface-variant cursor-pointer transition-colors"
+            title="Sign Out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     </aside>
   );

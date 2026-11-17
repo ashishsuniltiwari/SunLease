@@ -64,7 +64,8 @@ export default function LandingPage() {
 
   const handleConsultationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (contactInput.trim()) {
+    const cleanPhone = contactInput.replace(/\D/g, "");
+    if (cleanPhone.length === 10) {
       setConsultationSubmitted(true);
     }
   };
@@ -525,7 +526,7 @@ export default function LandingPage() {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-on-surface">
-                            AI Legal Assistant &amp; Model PPA
+                            Institutional Legal Advisory &amp; Model PPA
                           </span>
                           <span className="text-xs text-on-surface-variant mt-0.5">
                             Pre-drafted bilingual legal agreements vetted by high court real estate attorneys protect society roof ownership.
@@ -632,10 +633,10 @@ export default function LandingPage() {
                   <div className="relative z-10 pt-2">
                     <Link
                       href="/login"
-                      className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-secondary hover:bg-secondary-fixed text-on-secondary font-semibold transition-all shadow-[0_0_20px_rgba(255,185,95,0.25)]"
+                      className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-secondary hover:bg-secondary-fixed text-black font-bold transition-all shadow-[0_0_20px_rgba(255,185,95,0.25)]"
                     >
-                      <span>Apply for Vendor Empanelment</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span className="text-black font-bold">Apply for Vendor Empanelment</span>
+                      <ArrowRight className="w-4 h-4 text-black" />
                     </Link>
                   </div>
                 </div>
@@ -795,14 +796,24 @@ export default function LandingPage() {
                   </div>
                 ) : (
                   <form onSubmit={handleConsultationSubmit} className="flex flex-col sm:flex-row items-center gap-3">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter Secretary / Chairman Phone or Email"
-                      value={contactInput}
-                      onChange={(e) => setContactInput(e.target.value)}
-                      className="w-full sm:flex-1 bg-surface-container-high text-on-surface text-sm rounded-lg px-4 py-3.5 border border-outline-variant/40 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 placeholder:text-outline"
-                    />
+                    <div className="flex items-center bg-surface-container-high rounded-lg border border-outline-variant/40 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 overflow-hidden w-full sm:flex-1">
+                      <div className="px-3.5 py-3.5 bg-surface-container border-r border-outline-variant/40 text-on-surface-variant font-mono font-bold text-sm select-none shrink-0 flex items-center gap-1.5">
+                        <span className="text-xs">🇮🇳</span>
+                        <span>+91</span>
+                      </div>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        required
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        title="Please enter a valid 10-digit phone number"
+                        placeholder="Enter Chairman / Secretary Phone Number"
+                        value={contactInput}
+                        onChange={(e) => setContactInput(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        className="w-full bg-transparent text-on-surface text-sm px-4 py-3.5 focus:outline-none placeholder:text-outline font-mono"
+                      />
+                    </div>
                     <button
                       type="submit"
                       className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 font-semibold text-primary-on bg-gradient-to-r from-primary to-primary-container hover:brightness-110 px-6 py-3.5 rounded-lg transition-all shadow-glow"
@@ -916,7 +927,7 @@ export default function LandingPage() {
                 <Link href="/login" className="text-xs text-on-surface-variant hover:text-primary transition-colors">
                   Rooftop Capacity Calculator
                 </Link>
-                <Link href="/vendor/marketplace" className="text-xs text-on-surface-variant hover:text-primary transition-colors">
+                <Link href="/dashboard/vendor" className="text-xs text-on-surface-variant hover:text-primary transition-colors">
                   Vendor Tender Marketplace
                 </Link>
                 <Link href="/login" className="text-xs text-on-surface-variant hover:text-primary transition-colors">

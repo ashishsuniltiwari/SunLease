@@ -11,9 +11,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.118",
     "@prisma/client": "^6.19.3",
-    "ai": "^7.0.173",
     "argon2": "^0.45.2",
     "jose": "^6.2.17",
     "lucide-react": "^0.454.0",

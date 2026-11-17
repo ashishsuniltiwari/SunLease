@@ -29,13 +29,10 @@ import {
   Download,
   ExternalLink,
   X,
-  Send,
   History,
   ShieldCheck,
   Plus,
   ChevronRight,
-  Bot,
-  Sparkles,
   BadgeCheck,
   MapPin,
   Check,
@@ -116,24 +113,11 @@ interface TelemetryState {
   readings: TelemetryPoint[];
 }
 
-interface ChatMessage {
-  id: string;
-  sender: "user" | "copilot";
-  text: string;
-  time: string;
-  meta?: {
-    output?: string;
-    tariff?: string;
-    corpus?: string;
-  };
-}
-
 export default function RwaDashboardPage() {
   // Navigation & timeframe state
   const [activeTimeframe, setActiveTimeframe] = useState<string>("Live 5s");
 
-  // Modals & Drawer State
-  const [isCopilotOpen, setIsCopilotOpen] = useState<boolean>(false);
+  // Modals State
   const [isRaiseTicketOpen, setIsRaiseTicketOpen] = useState<boolean>(false);
   const [isListingModalOpen, setIsListingModalOpen] = useState<boolean>(false);
   const [isLedgerModalOpen, setIsLedgerModalOpen] = useState<boolean>(false);
@@ -147,7 +131,6 @@ export default function RwaDashboardPage() {
   const [newWing, setNewWing] = useState("Tower C Terrace");
   const [newArea, setNewArea] = useState("9500");
   const [listingError, setListingError] = useState<string | null>(null);
-  const [isAiStreaming, setIsAiStreaming] = useState<boolean>(false);
 
   // Telemetry state & 5s polling
   const [telemetry, setTelemetry] = useState<TelemetryState | null>(null);
@@ -254,113 +237,6 @@ export default function RwaDashboardPage() {
   const [newTicketTitle, setNewTicketTitle] = useState("");
   const [newTicketUnit, setNewTicketUnit] = useState("SMA Sunny Tripower unit #01");
   const [newTicketPriority, setNewTicketPriority] = useState<"Low" | "Medium" | "High">("Medium");
-
-  // AI Copilot Chat State
-  const [chatInput, setChatInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "1",
-      sender: "user",
-      text: "How does our society receive the monthly lease payout?",
-      time: "10:14 AM",
-    },
-    {
-      id: "2",
-      sender: "copilot",
-      text: "Green Meadows RWA receives automated monthly payments directly from SolarGrid India via tripartite escrow on the 5th of each month.",
-      time: "10:14 AM",
-      meta: {
-        output: "18.4 kW Output",
-        tariff: "₹3.40 / kWh",
-        corpus: "₹18,450.00",
-      },
-    },
-  ]);
-
-  // Streaming AI Chat integration with /api/assistant
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!chatInput.trim() || isAiStreaming) return;
-
-    const userText = chatInput.trim();
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      sender: "user",
-      text: userText,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    const assistantMsgId = (Date.now() + 1).toString();
-    const assistantMsg: ChatMessage = {
-      id: assistantMsgId,
-      sender: "copilot",
-      text: "",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
-    setChatInput("");
-    setIsAiStreaming(true);
-
-    try {
-      const res = await fetch("/api/assistant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [
-            ...messages.map((m) => ({
-              role: m.sender === "user" ? "user" : "assistant",
-              content: m.text,
-            })),
-            { role: "user", content: userText },
-          ],
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to receive stream from /api/assistant");
-      }
-
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let streamedResponse = "";
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          streamedResponse += chunk;
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMsgId
-                ? { ...msg, text: streamedResponse }
-                : msg
-            )
-          );
-        }
-      }
-    } catch (err: any) {
-      console.error("AI Assistant stream error:", err);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === assistantMsgId
-            ? {
-                ...msg,
-                text: "I am specialized strictly in advising RWAs on rooftop solar feasibility, RESCO contracts, and net-metering. Under the RESCO model, SolarGrid India covers 100% of equipment, replacement, and maintenance obligations.",
-              }
-            : msg
-        )
-      );
-    } finally {
-      setIsAiStreaming(false);
-    }
-  };
-
-  const handleChipClick = (prompt: string) => {
-    setChatInput(prompt);
-    setIsCopilotOpen(true);
-  };
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -469,24 +345,6 @@ export default function RwaDashboardPage() {
                 </span>
               </div>
             </div>
-
-            {/* AI Assistant Copilot Trigger Button */}
-            <button
-              onClick={() => setIsCopilotOpen(true)}
-              className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-surface-container-highest hover:bg-surface-bright text-primary border border-primary/40 hover:border-primary shadow-lg shadow-primary/10 transition-all cursor-pointer"
-              type="button"
-            >
-              <Sparkles className="w-4 h-4 text-secondary" />
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-bold text-on-surface leading-tight tracking-wide">
-                  Ask AI Copilot
-                </span>
-                <span className="text-[9px] text-secondary font-mono uppercase font-semibold leading-none">
-                  v2.4 Advisor
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-primary ml-0.5" />
-            </button>
 
             {/* List New Rooftop Button */}
             <button
@@ -1283,148 +1141,6 @@ export default function RwaDashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* 4. INTEGRATED AI ASSISTANT SLIDE-OVER DRAWER (SunLease RWA Copilot) */}
-      <aside
-        className={`fixed top-0 right-0 bottom-0 w-full sm:w-[440px] bg-surface-container-lowest/95 backdrop-blur-3xl z-50 shadow-2xl flex flex-col border-l border-outline-variant/40 transition-transform duration-300 ease-in-out ${
-          isCopilotOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Drawer Header */}
-        <div className="p-4 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-secondary/15 border border-secondary/30 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-secondary" />
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h3 className="font-heading text-base font-semibold text-on-surface">SunLease Copilot</h3>
-                <span className="font-mono text-[9px] bg-secondary/20 text-secondary border border-secondary/30 px-1.5 py-0.2 rounded font-bold">
-                  RWA v2.4
-                </span>
-              </div>
-              <span className="text-[11px] text-on-surface-variant font-sans">
-                Institutional Energy Legal &amp; Tariff Advisory
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsCopilotOpen(false)}
-            className="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer"
-            type="button"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* PPA Status Pill Strip */}
-        <div className="px-4 py-2 bg-surface-container border-b border-outline-variant/20 flex items-center justify-between font-mono text-[11px]">
-          <span className="text-on-surface-variant flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            Model: PPA RESCO v3.2 Verified
-          </span>
-          <span className="text-tertiary">Adani Mumbai Grid Norms</span>
-        </div>
-
-        {/* Scrollable Chat Stream */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-          {/* Preset Prompt Chips */}
-          <div className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] text-outline uppercase font-semibold">Suggested Queries:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                "Explain RESCO revenue share",
-                "What happens during site audit?",
-                "How is my tariff calculated?",
-                "Compare grid tariff vs solar tariff",
-              ].map((chip) => (
-                <button
-                  key={chip}
-                  onClick={() => handleChipClick(chip)}
-                  className="px-2.5 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-xs border border-outline-variant/30 transition-colors text-left cursor-pointer"
-                  type="button"
-                >
-                  &quot;{chip}&quot;
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="h-px bg-surface-container-high my-1" />
-
-          {/* Messages */}
-          <div className="flex flex-col gap-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex items-start gap-2 ${
-                  msg.sender === "user" ? "justify-end self-end max-w-[85%]" : "self-start max-w-[92%]"
-                }`}
-              >
-                {msg.sender === "copilot" && (
-                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center shrink-0 text-secondary-on mt-0.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                  </div>
-                )}
-                <div
-                  className={`p-3.5 rounded-2xl text-xs sm:text-sm ${
-                    msg.sender === "user"
-                      ? "bg-primary/15 border border-primary/20 text-on-surface rounded-tr-none"
-                      : "bg-surface-container-low border border-outline-variant/30 text-on-surface rounded-tl-none flex flex-col gap-2 shadow-sm"
-                  }`}
-                >
-                  <p className="leading-relaxed">{msg.text}</p>
-                  {msg.meta && (
-                    <div className="bg-surface-container-lowest p-2.5 rounded-lg font-mono text-xs flex flex-col gap-1 border border-outline-variant/20">
-                      <div className="flex justify-between text-on-surface-variant">
-                        <span>Peak Generation Yield:</span>
-                        <span className="text-on-surface font-semibold">{msg.meta.output}</span>
-                      </div>
-                      <div className="flex justify-between text-on-surface-variant">
-                        <span>Agreed Tariff:</span>
-                        <span className="text-secondary font-semibold">{msg.meta.tariff}</span>
-                      </div>
-                      <div className="flex justify-between text-on-surface font-bold pt-1 border-t border-outline-variant/20">
-                        <span>Current Est. Month Corpus:</span>
-                        <span className="text-primary">{msg.meta.corpus}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {msg.sender === "user" && (
-                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0 text-primary-on font-bold text-[10px] mt-0.5">
-                    RWA
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Drawer Chat Input Form */}
-        <div className="p-4 bg-surface-container-low border-t border-outline-variant/30 flex flex-col gap-2">
-          <form onSubmit={handleSendMessage} className="relative flex items-center">
-            <input
-              type="text"
-              value={chatInput}
-              disabled={isAiStreaming}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder={isAiStreaming ? "Copilot is analyzing solar policy & streaming..." : "Ask about your PPA agreement, tariff, DISCOM rules..."}
-              className="w-full bg-surface-container-lowest text-on-surface text-xs pl-3 pr-10 py-3 rounded-lg border border-outline-variant/40 focus:outline-none focus:border-primary shadow-inner disabled:opacity-60"
-            />
-            <button
-              type="submit"
-              disabled={isAiStreaming || !chatInput.trim()}
-              className="absolute right-2 p-1.5 rounded-md bg-primary hover:bg-primary-fixed-dim text-primary-on transition-colors cursor-pointer disabled:opacity-40"
-            >
-              {isAiStreaming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            </button>
-          </form>
-          <span className="font-mono text-[9px] text-outline text-center">
-            SunLease RWA Copilot is restricted strictly to RESCO solar education &amp; DISCOM rules.
-          </span>
-        </div>
-      </aside>
 
       {/* MODAL 1: RAISE TICKET */}
       {isRaiseTicketOpen && (

@@ -11,6 +11,33 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Redirect /vendor/marketplace to /dashboard/vendor (or /login if unauthenticated)
+  if (pathname === "/vendor/marketplace") {
+    const tokenFromCookie =
+      req.cookies.get(COOKIE_NAME)?.value ||
+      req.cookies.get(COOKIE_NAME_ALT)?.value;
+    const authHeader = req.headers.get("authorization");
+    const tokenFromHeader = authHeader?.startsWith("Bearer ")
+      ? authHeader.substring(7)
+      : null;
+    const token = tokenFromCookie || tokenFromHeader;
+
+    if (!token) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("redirect", "/dashboard/vendor");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const payload = await verifyJWT(token);
+    if (!payload || payload.role?.toUpperCase() !== "VENDOR") {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("redirect", "/dashboard/vendor");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.redirect(new URL("/dashboard/vendor", req.url));
+  }
+
   // Only protect /dashboard routes
   if (!pathname.startsWith("/dashboard")) {
     return NextResponse.next();
@@ -66,8 +93,10 @@ export async function middleware(req: NextRequest) {
   const isAccessingAllowedDashboard = pathname.startsWith(allowedDashboard);
 
   if (!isAccessingAllowedDashboard) {
-    // If attempting to access unauthorized dashboard route, redirect to their assigned dashboard
-    return NextResponse.redirect(new URL(allowedDashboard, req.url));
+    // If attempting to access an unauthorized dashboard route, redirect to login
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Attach decoded user info to request headers for downstream server components / routes
@@ -87,5 +116,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard", "/dashboard/:path*"],
+  matcher: ["/dashboard", "/dashboard/:path*", "/vendor/marketplace"],
 };
