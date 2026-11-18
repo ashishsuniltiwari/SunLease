@@ -78,7 +78,9 @@ export async function GET(
 
 /**
  * PATCH /api/bids/[id]
- * Accepts the bid and transitions listing status to CONTRACTED
+ * Supports:
+ * - RWA ACCEPT: Marks bid ACCEPTED, competing bids NOT_SELECTED, listing AUDIT_SCHEDULED, creates Audit
+ * - Vendor WITHDRAW: Marks bid WITHDRAWN (while listing is still LIVE/ACTIVE/OPEN)
  */
 export async function PATCH(
   req: NextRequest,
@@ -105,40 +107,119 @@ export async function PATCH(
       return NextResponse.json({ error: "Bid not found" }, { status: 404 });
     }
 
-    if (
-      authUser.role !== "ADMIN" &&
-      (authUser.role !== "RWA" || bid.listing.userId !== authUser.userId)
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Only the RWA listing owner can accept bids" },
-        { status: 403 }
-      );
+    const body = await req.json().catch(() => ({}));
+    const isAcceptAction = body.action === "ACCEPT" || body.status === "ACCEPTED";
+    const isWithdrawAction = body.action === "WITHDRAW" || body.status === "WITHDRAWN";
+
+    // 1. Handling VENDOR WITHDRAW
+    if (isWithdrawAction) {
+      if (authUser.role !== "ADMIN" && bid.vendorId !== authUser.userId) {
+        return NextResponse.json(
+          { error: "Forbidden: You can only withdraw your own bids" },
+          { status: 403 }
+        );
+      }
+
+      if (bid.status !== "PENDING") {
+        return NextResponse.json(
+          { error: `Cannot withdraw a bid with status ${bid.status}` },
+          { status: 400 }
+        );
+      }
+
+      const listingStatus = bid.listing.status.toUpperCase();
+      if (!["LIVE", "ACTIVE", "OPEN"].includes(listingStatus)) {
+        return NextResponse.json(
+          { error: `Cannot withdraw bid after listing has moved to ${listingStatus}` },
+          { status: 400 }
+        );
+      }
+
+      const updatedBid = await prisma.bid.update({
+        where: { id },
+        data: { status: "WITHDRAWN" },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Bid withdrawn successfully",
+        bid: updatedBid,
+      });
     }
 
-    const body = await req.json().catch(() => ({}));
-    const newStatus =
-      body.action === "ACCEPT" || body.status === "ACCEPTED"
-        ? "ACCEPTED"
-        : body.status || "ACCEPTED";
+    // 2. Handling RWA ACCEPT
+    if (isAcceptAction) {
+      if (
+        authUser.role !== "ADMIN" &&
+        (authUser.role !== "RWA" || bid.listing.userId !== authUser.userId)
+      ) {
+        return NextResponse.json(
+          { error: "Forbidden: Only the RWA listing owner can accept bids" },
+          { status: 403 }
+        );
+      }
 
-    const [updatedBid, updatedListing] = await prisma.$transaction([
-      prisma.bid.update({
-        where: { id },
-        data: { status: newStatus },
-      }),
-      prisma.roofListing.update({
-        where: { id: bid.listingId },
-        data: {
-          status: newStatus === "ACCEPTED" ? "CONTRACTED" : bid.listing.status,
-        },
-      }),
-    ]);
+      const listingStatus = bid.listing.status.toUpperCase();
+      if (!["LIVE", "ACTIVE", "OPEN"].includes(listingStatus)) {
+        return NextResponse.json(
+          { error: `Cannot accept bids when listing status is ${listingStatus}` },
+          { status: 400 }
+        );
+      }
+
+      const nextListingStatus = body.directContract ? "CONTRACTED" : "AUDIT_SCHEDULED";
+
+      const [updatedBid, rivalBidsUpdate, updatedListing, auditRecord] = await prisma.$transaction([
+        prisma.bid.update({
+          where: { id },
+          data: { status: "ACCEPTED" },
+        }),
+        prisma.bid.updateMany({
+          where: {
+            listingId: bid.listingId,
+            id: { not: id },
+            status: "PENDING",
+          },
+          data: { status: "NOT_SELECTED" },
+        }),
+        prisma.roofListing.update({
+          where: { id: bid.listingId },
+          data: { status: nextListingStatus },
+        }),
+        prisma.audit.create({
+          data: {
+            roofId: bid.listingId,
+            acceptedBidId: id,
+            outcome: "PENDING",
+            scheduledDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        }),
+      ]);
+
+      return NextResponse.json({
+        success: true,
+        message:
+          nextListingStatus === "AUDIT_SCHEDULED"
+            ? "Bid accepted! Listing moved to Audit Scheduled, rival bids marked Not Selected, and physical audit scheduled."
+            : "Bid accepted and contracted successfully",
+        bid: updatedBid,
+        listing: updatedListing,
+        rivalsClosed: rivalBidsUpdate.count,
+        audit: auditRecord,
+      });
+    }
+
+    // Default status update
+    const targetStatus = body.status || "REJECTED";
+    const updatedBid = await prisma.bid.update({
+      where: { id },
+      data: { status: targetStatus },
+    });
 
     return NextResponse.json({
       success: true,
-      message: `Bid ${newStatus.toLowerCase()} successfully`,
+      message: `Bid updated to ${targetStatus}`,
       bid: updatedBid,
-      listing: updatedListing,
     });
   } catch (error: any) {
     console.error("PATCH /api/bids/[id] error:", error);

@@ -13,50 +13,160 @@ enum Role {
   ADMIN
 }
 
+enum VendorStatus {
+  UNSUBMITTED
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DocumentType {
+  PAN
+  GST
+  DISCOM
+}
+
+enum ProposalType {
+  RESCO_LEASE
+  CAPEX
+  SUBSCRIPTION
+}
+
+enum AuditOutcome {
+  PENDING
+  PASSED
+  FAILED_REOPEN
+  FAILED_WITHDRAW
+}
+
+enum SystemStatus {
+  ONLINE
+  MAINTENANCE
+}
+
 model User {
-  id         String        @id @default(cuid())
-  email      String        @unique
-  name       String?
-  password   String?
-  role       Role          @default(RWA)
-  isVerified Boolean       @default(false)
-  status     String        @default("PENDING")
-  listings   RoofListing[]
-  bids       Bid[]
-  tickets    Ticket[]
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  phone           String?
+  password        String?
+  role            Role             @default(RWA)
+  isVerified      Boolean          @default(false)
+  status          String           @default("PENDING")
+  vendorProfile   VendorProfile?
+  vendorDocuments VendorDocument[]
+  listings        RoofListing[]
+  bids            Bid[]
+  tickets         Ticket[]
+  vendorTickets   Ticket[]         @relation("VendorTickets")
+  ticketMessages  TicketMessage[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model VendorProfile {
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName     String
+  status          VendorStatus     @default(UNSUBMITTED)
+  rejectionReason String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  documents       VendorDocument[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model VendorDocument {
+  id         String         @id @default(cuid())
+  vendorId   String
+  vendor     User           @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  profileId  String?
+  profile    VendorProfile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  docType    DocumentType
+  fileKey    String
+  fileName   String?
+  fileSize   Int?
+  mimeType   String?
+  uploadedAt DateTime       @default(now())
 }
 
 model RoofListing {
-  id             String      @id @default(cuid())
-  societyName    String      @default("")
-  society        String      @default("")
-  societyDetails String?
-  location       String?
-  city           String?
-  area           Float
-  status         String      @default("OPEN")
-  userId         String?
-  user           User?       @relation(fields: [userId], references: [id])
-  bids           Bid[]
-  telemetry      Telemetry[]
-  tickets        Ticket[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                String       @id @default(cuid())
+  societyName       String       @default("")
+  society           String       @default("")
+  societyDetails    String?
+  location          String?
+  city              String?
+  area              Float
+  usable_area_sqm   Float?
+  sunlight_hours_yr Float?
+  estimated_kw      Float?
+  data_source       String?      @default("GOOGLE_SOLAR")
+  shade_note        String?
+  public_note       String?
+  status            String       @default("OPEN")
+  userId            String?
+  user              User?        @relation(fields: [userId], references: [id])
+  bids              Bid[]
+  audits            Audit[]
+  contracts         Contract[]
+  telemetry         Telemetry[]
+  tickets           Ticket[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }
 
 model Bid {
-  id        String      @id @default(cuid())
-  amount    Float
-  kwp       Float
-  status    String?     @default("PENDING")
-  listingId String
-  listing   RoofListing @relation(fields: [listingId], references: [id])
-  vendorId  String
-  vendor    User        @relation(fields: [vendorId], references: [id])
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id             String        @id @default(cuid())
+  amount         Float
+  kwp            Float
+  proposalType   ProposalType? @default(RESCO_LEASE)
+  commercialTerm String?
+  proposedKw     Float?
+  timelineWeeks  Int?
+  note           String?
+  status         String?       @default("PENDING")
+  listingId      String
+  listing        RoofListing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  vendorId       String
+  vendor         User          @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  audits         Audit[]
+  contracts      Contract[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Audit {
+  id              String       @id @default(cuid())
+  roofId          String
+  roof            RoofListing  @relation(fields: [roofId], references: [id], onDelete: Cascade)
+  acceptedBidId   String
+  acceptedBid     Bid          @relation(fields: [acceptedBidId], references: [id], onDelete: Cascade)
+  vendorVisitNote String?
+  outcome         AuditOutcome @default(PENDING)
+  scheduledDate   DateTime?
+  recordedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Contract {
+  id                String       @id @default(cuid())
+  roofId            String
+  roof              RoofListing  @relation(fields: [roofId], references: [id], onDelete: Cascade)
+  bidId             String
+  bid               Bid          @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  contractDate      DateTime     @default(now())
+  proposalType      ProposalType @default(RESCO_LEASE)
+  tariffOrShareRate String?
+  signedDocKey      String?
+  systemStatus      SystemStatus @default(ONLINE)
+  vendorConfigNote  String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }
 
 model Telemetry {
@@ -69,18 +179,31 @@ model Telemetry {
 }
 
 model Ticket {
-  id          String       @id @default(cuid())
+  id          String          @id @default(cuid())
   title       String
-  unit        String?      @default("SMA Sunny Tripower unit #01")
-  status      String       @default("Open")
-  priority    String       @default("Medium")
+  unit        String?         @default("SMA Sunny Tripower unit #01")
+  status      String          @default("Open")
+  priority    String          @default("Medium")
   description String?
-  messages    Json?        @default("[]")
+  messages    Json?           @default("[]")
+  messagesRel TicketMessage[]
   userId      String?
-  user        User?        @relation(fields: [userId], references: [id])
+  user        User?           @relation(fields: [userId], references: [id])
+  vendorId    String?
+  vendor      User?           @relation("VendorTickets", fields: [vendorId], references: [id])
   listingId   String?
-  listing     RoofListing? @relation(fields: [listingId], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  listing     RoofListing?    @relation(fields: [listingId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
+model TicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId   String?
+  sender     User?    @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  senderRole String?
+  body       String
+  createdAt  DateTime @default(now())
+}

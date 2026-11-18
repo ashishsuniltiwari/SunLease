@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   Building2,
@@ -14,28 +15,45 @@ import {
   ShieldCheck,
   FileText,
   RotateCw,
-  Compass,
   Sparkles,
   AlertCircle,
-  Check,
+  BookmarkCheck,
+  Info,
+  BadgeAlert,
 } from "lucide-react";
 
 export default function ListNewRooftopPage() {
+  const router = useRouter();
+
+  // Basic Information
   const [societyName, setSocietyName] = useState("Emerald Heights CHS");
   const [location, setLocation] = useState("Kandivali West, Mumbai, MH");
   const [latitude, setLatitude] = useState("19.2045");
   const [longitude, setLongitude] = useState("72.8376");
   const [manualFallback, setManualFallback] = useState(false);
+
+  // Specifications
   const [rooftopArea, setRooftopArea] = useState("14,500");
   const [sanctionedLoad, setSanctionedLoad] = useState("180");
   const [discomCircle, setDiscomCircle] = useState("Adani Electricity - Mumbai Suburban");
   const [estimatedCapacity, setEstimatedCapacity] = useState("116");
+
+  // Track initial Solar API baseline to detect manual society overrides
+  const [apiScannedArea, setApiScannedArea] = useState<string>("14,500");
+  const [apiScannedCapacity, setApiScannedCapacity] = useState<string>("116");
+  const [areaOverridden, setAreaOverridden] = useState(false);
+  const [capacityOverridden, setCapacityOverridden] = useState(false);
+
+  // API State
   const [isFetchingSolar, setIsFetchingSolar] = useState(false);
   const [solarData, setSolarData] = useState<any>(null);
   const [solarNotice, setSolarNotice] = useState<string | null>(null);
+
+  // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdListingId, setCreatedListingId] = useState<string | null>(null);
+  const [createdStatus, setCreatedStatus] = useState<"DRAFT" | "LIVE">("LIVE");
   const [submitted, setSubmitted] = useState(false);
 
   // Fetch solar insights from /api/solar
@@ -58,10 +76,16 @@ export default function ListNewRooftopPage() {
 
       // Auto-populate form fields from Google Maps Solar API / Engine
       if (data.solarData?.usableRoofAreaSqFt) {
-        setRooftopArea(data.solarData.usableRoofAreaSqFt.toLocaleString());
+        const areaStr = data.solarData.usableRoofAreaSqFt.toLocaleString();
+        setRooftopArea(areaStr);
+        setApiScannedArea(areaStr);
+        setAreaOverridden(false);
       }
       if (data.solarData?.solarPotentialKwp) {
-        setEstimatedCapacity(data.solarData.solarPotentialKwp.toString());
+        const capStr = data.solarData.solarPotentialKwp.toString();
+        setEstimatedCapacity(capStr);
+        setApiScannedCapacity(capStr);
+        setCapacityOverridden(false);
       }
 
       if (data.fallback) {
@@ -79,17 +103,29 @@ export default function ListNewRooftopPage() {
     }
   };
 
-  // Initial fetch on mount
   useEffect(() => {
     handleFetchSolarData(false);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Detect manual overrides
+  const handleAreaChange = (val: string) => {
+    setRooftopArea(val);
+    setAreaOverridden(val.trim() !== apiScannedArea.trim());
+  };
+
+  const handleCapacityChange = (val: string) => {
+    setEstimatedCapacity(val);
+    setCapacityOverridden(val.trim() !== apiScannedCapacity.trim());
+  };
+
+  // Submit Listing as either DRAFT or LIVE
+  const handleFormSubmit = async (targetStatus: "DRAFT" | "LIVE") => {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const cleanArea = parseFloat(rooftopArea.replace(/,/g, "")) || 14500;
+    const cleanAreaSqFt = parseFloat(rooftopArea.replace(/,/g, "")) || 14500;
+    const cleanAreaSqm = Math.round(cleanAreaSqFt * 0.092903 * 10) / 10;
+    const cleanKw = parseFloat(estimatedCapacity) || Math.round(cleanAreaSqFt / 115);
 
     try {
       const res = await fetch("/api/listings", {
@@ -97,11 +133,16 @@ export default function ListNewRooftopPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           societyName,
-          area: cleanArea,
+          area: cleanAreaSqFt,
+          usable_area_sqm: cleanAreaSqm,
+          sunlight_hours_yr: solarData?.maxSunshineHoursPerYear || 1780,
+          estimated_kw: cleanKw,
+          data_source: areaOverridden || capacityOverridden ? "MANUAL_OVERRIDE" : "GOOGLE_SOLAR",
           location,
           city: "Mumbai",
-          status: "ACTIVE",
+          status: targetStatus,
           societyDetails: `Sanctioned Load: ${sanctionedLoad} kVA, DISCOM: ${discomCircle}, Solar Potential: ${estimatedCapacity} kWp`,
+          shade_note: areaOverridden ? "Rooftop area manually customized by Society RWA." : "Standard shadow profile verified via satellite imaging.",
         }),
       });
 
@@ -111,6 +152,7 @@ export default function ListNewRooftopPage() {
       }
 
       setCreatedListingId(data.listing?.id || "RT-4032");
+      setCreatedStatus(targetStatus);
       setSubmitted(true);
     } catch (err: any) {
       console.error("Listing creation error:", err);
@@ -128,7 +170,7 @@ export default function ListNewRooftopPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-primary/10 text-primary border border-primary/30">
-                RWA ROOFTOP ONBOARDING
+                R-02 · RWA ROOFTOP ONBOARDING
               </span>
               <span className="text-[11px] font-mono text-on-surface-variant flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-primary" /> SGX Encrypted Blind Auction Ready
@@ -262,28 +304,42 @@ export default function ListNewRooftopPage() {
               <CheckCircle2 className="w-7 h-7" />
             </div>
             <h2 className="text-lg font-heading font-bold text-on-surface">
-              Rooftop Successfully Registered for Blind Auction!
+              {createdStatus === "DRAFT"
+                ? "Rooftop Listing Saved as Private Draft!"
+                : "Rooftop Successfully Published to Live Blind Auction!"}
             </h2>
             <p className="text-xs text-on-surface-variant max-w-md mx-auto">
-              Your rooftop listing <code className="text-primary font-mono font-bold">#{createdListingId}</code> has been synced with PostgreSQL and broadcast to empanelled EPC contractors across the MMR grid circle.
+              Listing <code className="text-primary font-mono font-bold">#{createdListingId}</code> has been saved with status{" "}
+              <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold ${
+                createdStatus === "DRAFT" ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"
+              }`}>
+                {createdStatus}
+              </span>.
             </p>
-            <div className="flex justify-center gap-3 pt-2">
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              <Link
+                href={`/rwa/listings/${createdListingId}`}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-on text-xs font-bold hover:bg-primary/90 flex items-center gap-1.5 shadow-glow"
+              >
+                <span>Manage Listing (R-04)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
               <Link
                 href="/dashboard/rwa"
-                className="px-4 py-2 rounded-lg bg-primary text-primary-on text-xs font-bold hover:bg-primary/90 flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg bg-surface-container-high text-xs text-on-surface font-semibold hover:bg-surface-container-highest"
               >
-                View RWA Dashboard <ArrowRight className="w-3.5 h-3.5" />
+                Return to Dashboard
               </Link>
               <button
                 onClick={() => setSubmitted(false)}
-                className="px-4 py-2 rounded-lg bg-surface-container-high text-xs text-on-surface font-semibold hover:bg-surface-container-highest"
+                className="px-4 py-2 rounded-lg border border-outline-variant/40 text-xs text-on-surface-variant hover:text-on-surface"
               >
                 Register Another
               </button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="glass-panel-l1 rounded-xl p-6 border border-outline-variant/30 space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit("LIVE"); }} className="glass-panel-l1 rounded-xl p-6 border border-outline-variant/30 space-y-6">
             {submitError && (
               <div className="p-3 rounded-lg bg-error/10 border border-error/30 text-error text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -303,7 +359,7 @@ export default function ListNewRooftopPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
+                <label className="block text-xs font-mono text-on-surface-variant mb-1.5 font-semibold">
                   Housing Society Name
                 </label>
                 <div className="relative">
@@ -319,7 +375,7 @@ export default function ListNewRooftopPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
+                <label className="block text-xs font-mono text-on-surface-variant mb-1.5 font-semibold">
                   Location &amp; PIN Code
                 </label>
                 <div className="relative">
@@ -334,21 +390,35 @@ export default function ListNewRooftopPage() {
                 </div>
               </div>
 
+              {/* Usable Area with Manual Override Badge */}
               <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
-                  Usable Rooftop Area (Sq Ft)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-mono text-on-surface-variant font-semibold">
+                    Usable Rooftop Area (Sq Ft)
+                  </label>
+                  {areaOverridden && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-secondary/15 text-secondary border border-secondary/30 flex items-center gap-1">
+                      <BadgeAlert className="w-3 h-3" />
+                      Entered by the society
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   required
                   value={rooftopArea}
-                  onChange={(e) => setRooftopArea(e.target.value)}
-                  className="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/30 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary font-mono"
+                  onChange={(e) => handleAreaChange(e.target.value)}
+                  className={`w-full px-3 py-2 bg-surface-container-low rounded-lg text-xs text-on-surface focus:outline-none font-mono border ${
+                    areaOverridden ? "border-secondary/60 focus:border-secondary" : "border-outline-variant/30 focus:border-primary"
+                  }`}
                 />
+                <span className="text-[10px] text-outline mt-1 block">
+                  Scanned baseline: {apiScannedArea} sq.ft
+                </span>
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
+                <label className="block text-xs font-mono text-on-surface-variant mb-1.5 font-semibold">
                   Sanctioned Common Meter Load (kVA)
                 </label>
                 <input
@@ -361,7 +431,7 @@ export default function ListNewRooftopPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
+                <label className="block text-xs font-mono text-on-surface-variant mb-1.5 font-semibold">
                   DISCOM Supply Circle
                 </label>
                 <select
@@ -376,18 +446,67 @@ export default function ListNewRooftopPage() {
                 </select>
               </div>
 
+              {/* Target Capacity with Manual Override Badge */}
               <div>
-                <label className="block text-xs font-mono text-on-surface-variant mb-1.5">
-                  Target Capacity (kWp)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-mono text-on-surface-variant font-semibold">
+                    Target Capacity (kWp)
+                  </label>
+                  {capacityOverridden && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-secondary/15 text-secondary border border-secondary/30 flex items-center gap-1">
+                      <BadgeAlert className="w-3 h-3" />
+                      Entered by the society
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <Zap className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
                   <input
                     type="text"
                     value={estimatedCapacity}
-                    onChange={(e) => setEstimatedCapacity(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-surface-container-low border border-outline-variant/30 rounded-lg text-xs text-on-surface focus:outline-none focus:border-primary font-mono"
+                    onChange={(e) => handleCapacityChange(e.target.value)}
+                    className={`w-full pl-9 pr-3 py-2 bg-surface-container-low rounded-lg text-xs text-on-surface focus:outline-none font-mono border ${
+                      capacityOverridden ? "border-secondary/60 focus:border-secondary" : "border-outline-variant/30 focus:border-primary"
+                    }`}
                   />
+                </div>
+                <span className="text-[10px] text-outline mt-1 block">
+                  Scanned baseline: {apiScannedCapacity} kWp
+                </span>
+              </div>
+            </div>
+
+            {/* R-03: ESTIMATE REVIEW CARD */}
+            <div className="rounded-xl p-4 bg-surface-container-low border border-outline-variant/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-heading font-bold text-on-surface flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  R-03 · Estimate Review &amp; Underwriting Audit
+                </span>
+                <span className="text-[11px] font-mono text-on-surface-variant">
+                  Source:{" "}
+                  <strong className={areaOverridden || capacityOverridden ? "text-secondary" : "text-primary"}>
+                    {areaOverridden || capacityOverridden ? "Manual Override" : "Google Solar API"}
+                  </strong>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono bg-surface-container/40 p-3 rounded-lg border border-outline-variant/20">
+                <div>
+                  <span className="text-[10px] text-outline uppercase block">Gross Area</span>
+                  <span className="font-bold text-on-surface">{rooftopArea} sq.ft</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-outline uppercase block">Est. kWp</span>
+                  <span className="font-bold text-secondary">{estimatedCapacity} kWp</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-outline uppercase block">Annual Sunshine</span>
+                  <span className="font-bold text-on-surface">{solarData?.maxSunshineHoursPerYear || 1780} hrs</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-outline uppercase block">Est. Lease Earnings</span>
+                  <span className="font-bold text-primary">₹{(Math.round(parseFloat(estimatedCapacity || "116") * 3200) / 100000).toFixed(1)} Lakhs/yr</span>
                 </div>
               </div>
             </div>
@@ -403,28 +522,44 @@ export default function ListNewRooftopPage() {
               </p>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-outline-variant/20">
-              <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+            {/* Action Bar: Save Draft vs Publish Live */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-outline-variant/20">
+              <div className="flex items-center gap-2 text-xs text-on-surface-variant self-start sm:self-auto">
                 <Sun className="w-4 h-4 text-primary" />
-                <span>Estimated annual RWA lease yield: <strong className="text-primary font-mono">₹4.2 Lakhs</strong></span>
+                <span>Zero society capex; 25-year indexed lease.</span>
               </div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-5 py-2.5 rounded-lg bg-primary text-primary-on text-xs font-bold hover:bg-primary/90 transition-all flex items-center gap-2 shadow-glow disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <RotateCw className="w-4 h-4 animate-spin" />
-                    <span>Registering Rooftop...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Submit Rooftop to Blind Auction</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {/* Save Draft Button */}
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => handleFormSubmit("DRAFT")}
+                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-lg bg-surface-container-high border border-outline-variant/40 text-xs font-semibold text-on-surface hover:bg-surface-container-highest transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <BookmarkCheck className="w-4 h-4 text-warning" />
+                  <span>Save Draft</span>
+                </button>
+
+                {/* Publish Live Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 sm:flex-initial px-5 py-2.5 rounded-lg bg-primary text-primary-on text-xs font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-glow disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RotateCw className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Publish Live to Blind Auction</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         )}

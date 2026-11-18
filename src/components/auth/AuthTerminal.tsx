@@ -53,10 +53,10 @@ export function AuthTerminal({ initialMode = "login" }: AuthTerminalProps) {
         setEmail("admin@palmmeadows.rwa.org");
         setPassword("password123");
       } else if (role === "vendor") {
-        setEmail("bids@sunpower.epc.in");
+        setEmail("vendor@solargrid.in");
         setPassword("password123");
       } else {
-        setEmail("governance@sunlease.internal");
+        setEmail("superadmin@sunlease.io");
         setPassword("password123");
       }
     }
@@ -124,6 +124,7 @@ export function AuthTerminal({ initialMode = "login" }: AuthTerminalProps) {
           !res.ok &&
           res.status === 401 &&
           (cleanEmail.includes("palmmeadows") ||
+            cleanEmail.includes("solargrid") ||
             cleanEmail.includes("sunpower") ||
             cleanEmail.includes("sunlease"))
         ) {
@@ -138,8 +139,8 @@ export function AuthTerminal({ initialMode = "login" }: AuthTerminalProps) {
                 selectedRole === "rwa"
                   ? "Palm Meadows RWA"
                   : selectedRole === "vendor"
-                  ? "SunPower EPC"
-                  : "Platform Admin",
+                  ? "SolarGrid EPC Solutions"
+                  : "SunLease Super Admin",
             }),
           });
           if (autoSeedRes.ok) {
@@ -398,7 +399,7 @@ export function AuthTerminal({ initialMode = "login" }: AuthTerminalProps) {
                   </div>
                 </div>
 
-                {/* Trust workstation badge */}
+                {/* Trust workstation badge + Forgot Password */}
                 <div className="flex items-center justify-between text-xs text-on-surface-variant pt-0.5">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -408,9 +409,18 @@ export function AuthTerminal({ initialMode = "login" }: AuthTerminalProps) {
                     />
                     <span className="text-[11px]">Trust this workstation</span>
                   </label>
-                  <span className="font-mono text-[10px] text-primary flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> SSL 256-Bit
-                  </span>
+                  {mode === "login" ? (
+                    <Link
+                      href="/forgot-password"
+                      className="text-[11px] text-primary hover:underline font-mono"
+                    >
+                      Forgot password?
+                    </Link>
+                  ) : (
+                    <span className="font-mono text-[10px] text-primary flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> SSL 256-Bit
+                    </span>
+                  )}
                 </div>
 
                 {/* Submit Button */}

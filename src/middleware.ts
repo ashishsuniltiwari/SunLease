@@ -16,35 +16,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Redirect /vendor/marketplace to /dashboard/vendor (or /login if unauthenticated)
+  // Redirect /vendor/marketplace to /dashboard/vendor
   if (pathname === "/vendor/marketplace") {
-    const tokenFromCookie =
-      req.cookies.get(COOKIE_NAME)?.value ||
-      req.cookies.get(COOKIE_NAME_ALT)?.value;
-    const authHeader = req.headers.get("authorization");
-    const tokenFromHeader = authHeader?.startsWith("Bearer ")
-      ? authHeader.substring(7)
-      : null;
-    const token = tokenFromCookie || tokenFromHeader;
-
-    if (!token) {
-      const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("redirect", "/dashboard/vendor");
-      return NextResponse.redirect(loginUrl);
-    }
-
-    const payload = await verifyJWT(token);
-    if (!payload || payload.role?.toUpperCase() !== "VENDOR") {
-      const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("redirect", "/dashboard/vendor");
-      return NextResponse.redirect(loginUrl);
-    }
-
     return NextResponse.redirect(new URL("/dashboard/vendor", req.url));
   }
 
-  // Only protect /dashboard routes
-  if (!pathname.startsWith("/dashboard")) {
+  // Only protect /dashboard and portal routes
+  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isRwaPortal = pathname.startsWith("/rwa");
+  const isVendorPortal = pathname.startsWith("/vendor") && pathname !== "/vendor/verification";
+  const isAdminPortal = pathname.startsWith("/admin");
+
+  if (!isDashboardRoute && !isRwaPortal && !isVendorPortal && !isAdminPortal) {
     return NextResponse.next();
   }
 
@@ -60,21 +43,21 @@ export async function middleware(req: NextRequest) {
 
   const token = tokenFromCookie || tokenFromHeader;
 
-  // If no token, redirect to login
+  // If no token, redirect to session-expired interstitial (S-04)
   if (!token) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    const expiredUrl = new URL("/session-expired", req.url);
+    expiredUrl.searchParams.set("returnUrl", pathname);
+    return NextResponse.redirect(expiredUrl);
   }
 
   // Verify and decode JWT
   const payload = await verifyJWT(token);
 
-  // If invalid or expired token, redirect to login
+  // If invalid or expired token, redirect to session-expired (S-04)
   if (!payload || !payload.role) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    const expiredUrl = new URL("/session-expired", req.url);
+    expiredUrl.searchParams.set("returnUrl", pathname);
+    return NextResponse.redirect(expiredUrl);
   }
 
   const userRole = payload.role.toUpperCase();
@@ -91,17 +74,31 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(allowedDashboard, req.url));
   }
 
-  // Role-Based Access Control (RBAC):
-  // RWAs can ONLY access /dashboard/rwa
-  // Vendors can ONLY access /dashboard/vendor
-  // Admins can ONLY access /dashboard/admin
-  const isAccessingAllowedDashboard = pathname.startsWith(allowedDashboard);
+  // Check role authorization:
+  // RWAs: /dashboard/rwa and /rwa/*
+  // Vendors: /dashboard/vendor and /vendor/*
+  // Admins: /dashboard/admin and /admin/*
+  let isAuthorized = false;
 
-  if (!isAccessingAllowedDashboard) {
-    // If attempting to access an unauthorized dashboard route, redirect to login
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+  if (userRole === "RWA" && (pathname.startsWith("/dashboard/rwa") || pathname.startsWith("/rwa"))) {
+    isAuthorized = true;
+  } else if (
+    userRole === "VENDOR" &&
+    (pathname.startsWith("/dashboard/vendor") || pathname.startsWith("/vendor"))
+  ) {
+    isAuthorized = true;
+  } else if (
+    userRole === "ADMIN" &&
+    (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin"))
+  ) {
+    isAuthorized = true;
+  }
+
+  if (!isAuthorized) {
+    // S-06: Wrong-role attempt -> redirect to dedicated 403 Forbidden screen
+    const forbiddenUrl = new URL("/forbidden", req.url);
+    forbiddenUrl.searchParams.set("from", pathname);
+    return NextResponse.redirect(forbiddenUrl);
   }
 
   // Attach decoded user info to request headers for downstream server components / routes
@@ -121,5 +118,14 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard", "/dashboard/:path*", "/vendor/marketplace"],
+  matcher: [
+    "/dashboard",
+    "/dashboard/:path*",
+    "/rwa/:path*",
+    "/vendor/marketplace",
+    "/vendor/bids",
+    "/vendor/fleet",
+    "/vendor/maintenance",
+    "/admin/:path*",
+  ],
 };

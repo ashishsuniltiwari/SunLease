@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   ResponsiveContainer,
@@ -866,14 +867,16 @@ export default function RwaDashboardPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {listings.map((l) => (
-                    <div
+                    <Link
                       key={l.id}
-                      className="p-4 rounded-xl bg-surface-container/70 border border-outline-variant/30 flex flex-col gap-2 hover:border-primary/40 transition-all"
+                      href={`/rwa/listings/${l.id}`}
+                      className="p-4 rounded-xl bg-surface-container/70 border border-outline-variant/30 flex flex-col gap-2 hover:border-primary/40 transition-all block group"
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-heading font-bold text-sm text-on-surface">
-                            {l.societyName || l.society}
+                          <div className="font-heading font-bold text-sm text-on-surface group-hover:text-primary transition-colors flex items-center gap-1.5">
+                            <span>{l.societyName || l.society}</span>
+                            <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
                           <div className="text-[11px] text-on-surface-variant font-mono">
                             {l.location || "Mira Road, Mumbai"}
@@ -891,7 +894,7 @@ export default function RwaDashboardPage() {
                           {l._count?.bids ?? 0} Bids Logged
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -1046,12 +1049,13 @@ export default function RwaDashboardPage() {
                         : "bg-tertiary/15 text-tertiary border border-tertiary/30";
 
                     return (
-                      <div
+                      <Link
                         key={tkt.id}
-                        className="bg-surface-container/70 p-3 rounded-lg flex flex-col gap-1.5 hover:bg-surface-container border border-outline-variant/20 transition-colors"
+                        href={`/rwa/tickets/${tkt.id}`}
+                        className="bg-surface-container/70 p-3 rounded-lg flex flex-col gap-1.5 hover:bg-surface-container border border-outline-variant/20 hover:border-primary/30 transition-all block group"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-xs text-on-surface-variant font-semibold">
+                          <span className="font-mono text-xs text-on-surface-variant font-semibold group-hover:text-primary transition-colors">
                             {tkt.id.startsWith("cm") ? `#TKT-${tkt.id.slice(-4).toUpperCase()}` : tkt.id}
                           </span>
                           <div className="flex items-center gap-1.5">
@@ -1072,7 +1076,7 @@ export default function RwaDashboardPage() {
                           <span className="truncate max-w-[170px]">{tkt.unit || "SMA Sunny Tripower unit #01"}</span>
                           <span className="font-mono text-[10px] text-outline shrink-0">{displayTime}</span>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })
                 )}

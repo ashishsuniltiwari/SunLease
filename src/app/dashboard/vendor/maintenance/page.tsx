@@ -176,15 +176,42 @@ export default function VendorMaintenanceDeskPage() {
     }, 700);
   };
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     setIsSavingNote(true);
-    setTimeout(() => {
-      setIsSavingNote(false);
+    try {
+      await fetch("/api/contracts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemStatus: operatingRegime,
+          vendorConfigNote: configNotes,
+        }),
+      });
       setNoteSavedFeedback(true);
       setTimeout(() => {
         setNoteSavedFeedback(false);
       }, 2500);
-    }, 600);
+    } catch (err) {
+      console.error("Failed to save plant configuration to contract:", err);
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const handleRegimeChange = async (newRegime: "ONLINE" | "MAINTENANCE") => {
+    setOperatingRegime(newRegime);
+    try {
+      await fetch("/api/contracts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemStatus: newRegime,
+          vendorConfigNote: configNotes,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to update operating regime:", err);
+    }
   };
 
   const handleMfaSubmit = (e: React.FormEvent) => {
@@ -852,7 +879,7 @@ export default function VendorMaintenanceDeskPage() {
                 <span className="font-mono text-[10px] text-on-surface-variant uppercase">OPERATING REGIME</span>
                 <div className="grid grid-cols-2 gap-1.5 bg-surface-container p-1 rounded-lg border border-outline-variant/20">
                   <button
-                    onClick={() => setOperatingRegime("ONLINE")}
+                    onClick={() => handleRegimeChange("ONLINE")}
                     className={`py-1.5 px-2 rounded-md font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                       operatingRegime === "ONLINE"
                         ? "bg-primary text-primary-on shadow-sm"
@@ -864,7 +891,7 @@ export default function VendorMaintenanceDeskPage() {
                     <span>ONLINE</span>
                   </button>
                   <button
-                    onClick={() => setOperatingRegime("MAINTENANCE")}
+                    onClick={() => handleRegimeChange("MAINTENANCE")}
                     className={`py-1.5 px-2 rounded-md font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                       operatingRegime === "MAINTENANCE"
                         ? "bg-secondary text-secondary-on shadow-sm"

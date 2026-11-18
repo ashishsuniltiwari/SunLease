@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import {
   Sun,
   Zap,
   Lock,
   ShieldCheck,
+  ShieldAlert,
   Building2,
   MapPin,
   RotateCw,
   Clock,
   ArrowUpRight,
+  ArrowRight,
   Eye,
   X,
   ExternalLink,
@@ -93,6 +96,11 @@ export default function VendorDashboardPage() {
 
   // Receipt Modal state
   const [receiptListing, setReceiptListing] = useState<Listing | null>(null);
+
+  // V-01 Gatekeeper State
+  const [vendorStatus, setVendorStatus] = useState<string>("APPROVED");
+  const [vendorRejectionReason, setVendorRejectionReason] = useState<string | null>(null);
+  const [checkingVerification, setCheckingVerification] = useState(true);
 
   // Listings state
   const [listings, setListings] = useState<Listing[]>([
@@ -206,10 +214,20 @@ export default function VendorDashboardPage() {
   // Live Data Synchronization: Load live listings from /api/listings and live bids from /api/bids
   const loadLiveData = async () => {
     try {
-      const [listingsRes, bidsRes] = await Promise.all([
+      const [listingsRes, bidsRes, verifyRes] = await Promise.all([
         fetch("/api/listings"),
         fetch("/api/bids"),
+        fetch("/api/vendor/verification"),
       ]);
+
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        if (verifyData.status) {
+          setVendorStatus(verifyData.status.toUpperCase());
+        }
+        setVendorRejectionReason(verifyData.rejectionReason || null);
+      }
+      setCheckingVerification(false);
 
       const myBidsMap = new Map<string, any>();
       if (bidsRes.ok) {
@@ -427,9 +445,33 @@ export default function VendorDashboardPage() {
               <span className="px-2.5 py-1 rounded bg-surface-container-high border border-outline-variant/40 font-mono text-[10px] text-primary uppercase tracking-widest font-semibold">
                 EPC Terminal • V-05 / V-06 / V-07
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant/30 text-on-surface-variant font-mono text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                Empanelled Tier-1 EPC Vendor #EPC-9942
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border font-mono text-[11px] ${
+                  vendorStatus === "APPROVED"
+                    ? "bg-primary/10 border-primary/30 text-primary"
+                    : vendorStatus === "REJECTED" || vendorStatus === "SUSPENDED"
+                    ? "bg-error/10 border-error/30 text-error"
+                    : "bg-secondary/10 border-secondary/30 text-secondary"
+                }`}
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    vendorStatus === "APPROVED"
+                      ? "bg-primary animate-pulse"
+                      : vendorStatus === "REJECTED" || vendorStatus === "SUSPENDED"
+                      ? "bg-error"
+                      : "bg-secondary animate-pulse"
+                  }`}
+                />
+                {vendorStatus === "APPROVED"
+                  ? "Empanelled Tier-1 EPC Vendor #EPC-9942"
+                  : vendorStatus === "PENDING"
+                  ? "Empanelment Application Pending Review"
+                  : vendorStatus === "REJECTED"
+                  ? "Empanelment Application Rejected"
+                  : vendorStatus === "SUSPENDED"
+                  ? "EPC Contractor Privileges Suspended"
+                  : "Empanelment Verification Required"}
               </span>
               {uploadedCertificate && (
                 <a
@@ -604,7 +646,103 @@ export default function VendorDashboardPage() {
           </div>
         </div>
 
-        {/* 3. FILTER & SEARCH CONTROLS BAR */}
+        {/* V-01 VERIFICATION GATEKEEPER (Blocks unapproved vendors from marketplace tenders) */}
+        {vendorStatus !== "APPROVED" ? (
+          <div className="glass-panel-l1 rounded-2xl p-6 sm:p-8 border border-secondary/40 shadow-xl space-y-5 relative overflow-hidden">
+            <div className="flex items-start gap-4">
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  vendorStatus === "REJECTED" || vendorStatus === "SUSPENDED"
+                    ? "bg-error/20 text-error"
+                    : "bg-secondary/20 text-secondary"
+                }`}
+              >
+                {vendorStatus === "SUSPENDED" ? (
+                  <ShieldAlert className="w-6 h-6" />
+                ) : vendorStatus === "REJECTED" ? (
+                  <X className="w-6 h-6" />
+                ) : vendorStatus === "PENDING" ? (
+                  <Clock className="w-6 h-6" />
+                ) : (
+                  <ShieldCheck className="w-6 h-6" />
+                )}
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                      vendorStatus === "REJECTED" || vendorStatus === "SUSPENDED"
+                        ? "bg-error/15 text-error border border-error/30"
+                        : "bg-secondary/15 text-secondary border border-secondary/30"
+                    }`}
+                  >
+                    V-01 · Gatekeeper Protocol Active
+                  </span>
+                  <span className="font-mono text-xs text-on-surface-variant uppercase">
+                    Status: {vendorStatus}
+                  </span>
+                </div>
+
+                <h2 className="text-xl font-heading font-bold text-on-surface">
+                  {vendorStatus === "SUSPENDED"
+                    ? "EPC Contractor Account Suspended"
+                    : vendorStatus === "REJECTED"
+                    ? "Empanelment Application Rejected"
+                    : vendorStatus === "PENDING"
+                    ? "Compliance Verification In Progress"
+                    : "Compliance Verification Required to Access Tender Pool"}
+                </h2>
+
+                <p className="text-xs text-on-surface-variant max-w-3xl leading-relaxed">
+                  {vendorStatus === "SUSPENDED"
+                    ? "Your contractor credentials and marketplace bidding permissions have been administratively suspended. All active bids have been withdrawn from live auctions. Please contact compliance@sunlease.io for reinstatement."
+                    : vendorStatus === "REJECTED"
+                    ? `Your verification application was rejected during administrative audit. Disqualification Notice: "${
+                        vendorRejectionReason || "Statutory criteria not met"
+                      }". Please review and upload updated documents.`
+                    : vendorStatus === "PENDING"
+                    ? "Your Company PAN, GST registration, and DISCOM empanelment documents are currently in the Platform Admin Verification Queue. Marketplace tenders and blind bidding capabilities will unlock once reviewed."
+                    : "Pursuant to State DISCOM & MNRE regulations, all EPC contractors must upload their 3 mandatory statutory documents (PAN, GST, and DISCOM empanelment letter) before accessing confidential rooftop tender engineering packages and submitting sealed blind bids."}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-outline-variant/20">
+              <div className="flex items-center gap-2 text-xs font-mono text-on-surface-variant">
+                <Lock className="w-4 h-4 text-secondary" />
+                <span>Rooftop feasibility packages & sealed bidding locked until verified.</span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {vendorStatus === "SUSPENDED" ? (
+                  <Link
+                    href="/contact"
+                    className="px-5 py-2.5 rounded-lg bg-error text-background font-heading text-xs font-bold hover:brightness-110 flex items-center gap-1.5 shadow-md"
+                  >
+                    <span>Contact Compliance Officer</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                ) : (
+                  <Link
+                    href="/vendor/verification"
+                    className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-secondary to-secondary-container text-secondary-on font-heading text-xs font-bold hover:brightness-110 flex items-center gap-1.5 shadow-glow"
+                  >
+                    <span>
+                      {vendorStatus === "PENDING"
+                        ? "View Review Status (V-03)"
+                        : vendorStatus === "REJECTED"
+                        ? "Review Disqualification & Re-upload (V-04)"
+                        : "Submit 3 Compliance Documents (V-02)"}
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* 3. FILTER & SEARCH CONTROLS BAR */}
         <div className="p-4 rounded-xl glass-panel-l2 border border-outline-variant/30 shadow-sm flex flex-col gap-3">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
             {/* Search Input */}
@@ -882,13 +1020,22 @@ export default function VendorDashboardPage() {
                       <span>Committee contact details revealed upon bid acceptance.</span>
                     </div>
 
-                    <button
-                      onClick={() => handleOpenBidDrawer(listing)}
-                      className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-primary to-primary-container text-primary-on font-heading text-xs font-bold flex items-center justify-center gap-2 shadow-glow hover:brightness-110 transition-all cursor-pointer"
-                    >
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>Submit Blind Proposal</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/vendor/marketplace/${listing.id}`}
+                        className="flex-1 py-2.5 px-3 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-mono text-xs font-semibold flex items-center justify-center gap-1.5 border border-outline-variant/30 transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-primary" />
+                        <span>Specs (V-06)</span>
+                      </Link>
+                      <button
+                        onClick={() => handleOpenBidDrawer(listing)}
+                        className="flex-1 py-2.5 px-3 rounded-lg bg-gradient-to-r from-primary to-primary-container text-primary-on font-heading text-xs font-bold flex items-center justify-center gap-1.5 shadow-glow hover:brightness-110 transition-all cursor-pointer"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Bid (V-07)</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </article>
@@ -939,21 +1086,30 @@ export default function VendorDashboardPage() {
                         </span>
                       </td>
                       <td className="p-3.5 text-right">
-                        {l.hasBid ? (
-                          <button
-                            onClick={() => setReceiptListing(l)}
-                            className="px-3 py-1.5 rounded bg-surface-container hover:bg-surface-container-highest text-secondary text-xs font-mono font-medium border border-outline-variant/30"
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/vendor/marketplace/${l.id}`}
+                            className="p-1.5 rounded bg-surface-container hover:bg-surface-bright text-on-surface border border-outline-variant/30"
+                            title="Inspect Rooftop Feasibility (V-06)"
                           >
-                            Receipt
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleOpenBidDrawer(l)}
-                            className="px-3 py-1.5 rounded bg-primary text-primary-on hover:brightness-110 text-xs font-mono font-bold shadow-sm"
-                          >
-                            Bid
-                          </button>
-                        )}
+                            <Eye className="w-3.5 h-3.5 text-primary" />
+                          </Link>
+                          {l.hasBid ? (
+                            <button
+                              onClick={() => setReceiptListing(l)}
+                              className="px-3 py-1.5 rounded bg-surface-container hover:bg-surface-container-highest text-secondary text-xs font-mono font-medium border border-outline-variant/30"
+                            >
+                              Receipt
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenBidDrawer(l)}
+                              className="px-3 py-1.5 rounded bg-primary text-primary-on hover:brightness-110 text-xs font-mono font-bold shadow-sm"
+                            >
+                              Bid
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -961,6 +1117,8 @@ export default function VendorDashboardPage() {
               </table>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
 

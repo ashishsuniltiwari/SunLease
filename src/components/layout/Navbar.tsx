@@ -57,18 +57,24 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-on-surface-variant">
-          <Link href="#how-it-works" className="hover:text-primary transition-colors">
+        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-on-surface-variant">
+          <Link href="/how-it-works" className="hover:text-primary transition-colors">
             How It Works
           </Link>
-          <Link href="#societies" className="hover:text-primary transition-colors">
+          <Link href="/for-societies" className="hover:text-primary transition-colors">
             For Housing Societies
           </Link>
-          <Link href="#vendors" className="hover:text-primary transition-colors">
+          <Link href="/for-vendors" className="hover:text-primary transition-colors">
             For Installers
           </Link>
+          <Link href="/about" className="hover:text-primary transition-colors">
+            About
+          </Link>
+          <Link href="/contact" className="hover:text-primary transition-colors">
+            Contact
+          </Link>
           <Link href="/dashboard/vendor" className="hover:text-primary transition-colors flex items-center gap-1">
-            <span>Marketplace Preview</span>
+            <span>Marketplace</span>
             <span className="px-1.5 py-0.5 text-[10px] bg-secondary/10 text-secondary border border-secondary/30 rounded font-mono">LIVE</span>
           </Link>
         </nav>
@@ -133,14 +139,20 @@ export function Navbar() {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden glass-panel-l3 border-b border-outline-variant/30 px-4 py-4 space-y-3">
-          <Link href="#how-it-works" className="block text-sm text-on-surface-variant hover:text-primary">
+          <Link href="/how-it-works" className="block text-sm text-on-surface-variant hover:text-primary">
             How It Works
           </Link>
-          <Link href="#societies" className="block text-sm text-on-surface-variant hover:text-primary">
+          <Link href="/for-societies" className="block text-sm text-on-surface-variant hover:text-primary">
             For Housing Societies
           </Link>
-          <Link href="#vendors" className="block text-sm text-on-surface-variant hover:text-primary">
+          <Link href="/for-vendors" className="block text-sm text-on-surface-variant hover:text-primary">
             For Installers
+          </Link>
+          <Link href="/about" className="block text-sm text-on-surface-variant hover:text-primary">
+            About SunLease
+          </Link>
+          <Link href="/contact" className="block text-sm text-on-surface-variant hover:text-primary">
+            Contact Us
           </Link>
           <Link href="/dashboard/vendor" className="block text-sm text-primary">
             Marketplace Preview

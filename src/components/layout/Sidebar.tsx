@@ -13,9 +13,11 @@ import {
   Activity,
   Wrench,
   ShieldAlert,
+  ShieldCheck,
   UserCheck,
   Home,
   LogOut,
+  Settings,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -101,6 +103,9 @@ export function Sidebar() {
               <Link href="/rwa/listings/1/bids" className={itemClass("/rwa/listings/1/bids")}>
                 <FileCheck2 className="w-3.5 h-3.5" /> Blind Bids
               </Link>
+              <Link href="/rwa/settings" className={itemClass("/rwa/settings")}>
+                <Settings className="w-3.5 h-3.5" /> Account Settings
+              </Link>
             </div>
           </div>
         )}
@@ -118,6 +123,9 @@ export function Sidebar() {
               <Link href="/vendor/bids" className={itemClass("/vendor/bids")}>
                 <Gavel className="w-3.5 h-3.5" /> My Submitted Bids
               </Link>
+              <Link href="/vendor/audit" className={itemClass("/vendor/audit")}>
+                <ShieldCheck className="w-3.5 h-3.5" /> Audit Watch Desk
+              </Link>
               <Link href="/vendor/fleet" className={itemClass("/vendor/fleet")}>
                 <Activity className="w-3.5 h-3.5" /> Contracted Fleet
               </Link>
@@ -126,6 +134,9 @@ export function Sidebar() {
               </Link>
               <Link href="/vendor/verification" className={itemClass("/vendor/verification")}>
                 <UserCheck className="w-3.5 h-3.5" /> DISCOM Verification
+              </Link>
+              <Link href="/vendor/settings" className={itemClass("/vendor/settings")}>
+                <Settings className="w-3.5 h-3.5" /> Company Settings
               </Link>
             </div>
           </div>
