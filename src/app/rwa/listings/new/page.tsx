@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -20,6 +20,8 @@ import {
   BookmarkCheck,
   Info,
   BadgeAlert,
+  Trash2,
+  ExternalLink,
 } from "lucide-react";
 
 export default function ListNewRooftopPage() {
@@ -55,6 +57,70 @@ export default function ListNewRooftopPage() {
   const [createdListingId, setCreatedListingId] = useState<string | null>(null);
   const [createdStatus, setCreatedStatus] = useState<"DRAFT" | "LIVE">("LIVE");
   const [submitted, setSubmitted] = useState(false);
+
+  // Document Upload State & Enclave Staging
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [uploadDocError, setUploadDocError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadedDoc, setUploadedDoc] = useState<{
+    filename: string;
+    originalName: string;
+    size: number;
+    url: string;
+  } | null>(null);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadDocError("File size exceeds the 25MB limit.");
+      return;
+    }
+
+    setIsUploadingDoc(true);
+    setUploadDocError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "File upload failed");
+      }
+
+      setUploadedDoc({
+        filename: data.filename,
+        originalName: data.originalName,
+        size: data.size,
+        url: data.url,
+      });
+    } catch (err: any) {
+      console.error("Document upload error:", err);
+      setUploadDocError(err.message || "Failed to upload document");
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileUpload(file);
+    if (e.target) e.target.value = "";
+  };
+
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileUpload(file);
+  };
 
   // Fetch solar insights from /api/solar
   const handleFetchSolarData = async (forceFallback = manualFallback) => {
@@ -141,7 +207,10 @@ export default function ListNewRooftopPage() {
           location,
           city: "Mumbai",
           status: targetStatus,
-          societyDetails: `Sanctioned Load: ${sanctionedLoad} kVA, DISCOM: ${discomCircle}, Solar Potential: ${estimatedCapacity} kWp`,
+          societyDetails: `Sanctioned Load: ${sanctionedLoad} kVA, DISCOM: ${discomCircle}, Solar Potential: ${estimatedCapacity} kWp${
+            uploadedDoc ? ` | Fitness Certificate: ${uploadedDoc.originalName}` : ""
+          }`,
+          public_note: uploadedDoc ? uploadedDoc.url : null,
           shade_note: areaOverridden ? "Rooftop area manually customized by Society RWA." : "Standard shadow profile verified via satellite imaging.",
         }),
       });
@@ -511,16 +580,116 @@ export default function ListNewRooftopPage() {
               </div>
             </div>
 
-            {/* Document Upload Area */}
-            <div className="border border-dashed border-outline-variant/40 rounded-xl p-5 text-center bg-surface-container-lowest/50 hover:border-primary/50 transition-colors">
-              <Upload className="w-8 h-8 mx-auto text-on-surface-variant/60 mb-2" />
-              <p className="text-xs text-on-surface font-medium">
-                Upload Structural Fitness Certificate &amp; Electricity Bill (PDF/JPG)
-              </p>
-              <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
-                Encrypted and securely held in SGX enclave until blind auction closes.
-              </p>
-            </div>
+            {/* Document Upload Area (Interactive Enclave Staging) */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={onFileChange}
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+            />
+
+            {uploadedDoc ? (
+              <div className="border border-primary/40 rounded-xl p-4 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-heading font-bold text-on-surface">
+                        {uploadedDoc.originalName}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/30 font-mono text-[10px] uppercase font-bold">
+                        Enclave Encrypted
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-on-surface-variant">
+                      {(uploadedDoc.size / 1024).toFixed(1)} KB • Structural Fitness Certificate &amp; DISCOM Bill Staged
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <a
+                    href={uploadedDoc.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-highest text-on-surface border border-outline-variant/30 text-xs font-mono flex items-center gap-1.5 transition-colors"
+                    title="View uploaded document"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>View</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-highest text-on-surface border border-outline-variant/30 text-xs font-mono font-medium transition-colors cursor-pointer"
+                  >
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadedDoc(null)}
+                    className="p-1.5 rounded-lg bg-error/10 hover:bg-error/20 text-error border border-error/30 text-xs font-mono transition-colors cursor-pointer"
+                    title="Remove document"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={onDrop}
+                className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer select-none group ${
+                  isDragOver
+                    ? "border-primary bg-primary/10 shadow-glow"
+                    : "border-outline-variant/40 bg-surface-container-lowest/50 hover:border-primary/60 hover:bg-surface-container-low"
+                }`}
+              >
+                {isUploadingDoc ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-3">
+                    <RotateCw className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-xs text-on-surface font-semibold font-mono">
+                      Encrypting &amp; Staging Document to SGX Enclave...
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-surface-container mx-auto mb-2.5 flex items-center justify-center text-on-surface-variant group-hover:text-primary group-hover:scale-110 transition-all border border-outline-variant/30">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs text-on-surface font-semibold group-hover:text-primary transition-colors">
+                      Click to Browse or Drag &amp; Drop Structural Fitness Certificate &amp; Electricity Bill
+                    </p>
+                    <p className="text-[11px] text-on-surface-variant/70 mt-1">
+                      PDF, JPG, or PNG format up to 25MB • Encrypted and securely held in SGX enclave until blind auction closes.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {uploadDocError && (
+              <div className="p-2.5 rounded-lg bg-error/10 border border-error/30 text-error text-xs font-mono flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{uploadDocError}</span>
+              </div>
+            )}
 
             {/* Action Bar: Save Draft vs Publish Live */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-outline-variant/20">

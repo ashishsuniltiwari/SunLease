@@ -42,6 +42,36 @@ export default function RwaContractScreenPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [contractConfirmed, setContractConfirmed] = useState(false);
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
+  const handleContractDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingDoc(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.originalName) {
+        setUploadedFileName(data.originalName);
+      } else {
+        setUploadedFileName(file.name);
+      }
+    } catch {
+      setUploadedFileName(file.name);
+    } finally {
+      setIsUploadingDoc(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -324,23 +354,33 @@ export default function RwaContractScreenPage() {
               </div>
             </div>
 
-            {/* Simulated Signed Copy Upload */}
-            <div className="border border-dashed border-outline-variant/40 rounded-xl p-6 text-center bg-surface-container-low/50 hover:border-primary/50 transition-colors">
-              <Upload className="w-8 h-8 mx-auto text-on-surface-variant/60 mb-2" />
-              <p className="text-xs text-on-surface font-medium">
+            {/* Signed Copy Upload */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleContractDocUpload}
+              accept=".pdf,.png,.jpg,.jpeg"
+              className="hidden"
+            />
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="border border-dashed border-outline-variant/40 rounded-xl p-6 text-center bg-surface-container-low/50 hover:border-primary/50 transition-colors cursor-pointer group"
+            >
+              <Upload className="w-8 h-8 mx-auto text-on-surface-variant/60 group-hover:text-primary transition-colors mb-2" />
+              <p className="text-xs text-on-surface font-medium group-hover:text-primary transition-colors">
                 Attach Executed PPA Copy (PDF / Scanned Stamp Paper)
               </p>
               <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
                 Stored in encrypted compliance vault for society auditing.
               </p>
               <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setUploadedFileName(`PPA_Executed_${contractRef}.pdf`)}
-                  className="px-3 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant/30 text-[11px] font-mono text-on-surface hover:bg-surface-container-highest"
-                >
-                  {uploadedFileName ? `Attached: ${uploadedFileName}` : "Simulate File Upload"}
-                </button>
+                <span className="inline-block px-3 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant/30 text-[11px] font-mono text-on-surface hover:bg-surface-container-highest">
+                  {isUploadingDoc
+                    ? "Uploading..."
+                    : uploadedFileName
+                    ? `✓ Attached: ${uploadedFileName}`
+                    : "Browse or Drop File"}
+                </span>
               </div>
             </div>
 
